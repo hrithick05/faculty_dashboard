@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Edit, Eye, Plus, BarChart3, Trash2 } from "lucide-react";
+import { Search, Filter, Edit, Eye, Plus, BarChart3, Trash2, User } from "lucide-react";
 import { achievementTypes } from '../data/mockFaculty';
 import { getCookie } from '../utils/cookies';
 import { isCurrentUserHeadOfDepartment } from '../utils/roleCheck';
@@ -134,7 +134,8 @@ const FacultyTable = ({
 
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="space-y-4">
+        {/* Title and Add Faculty Button */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <CardTitle className="text-xl font-bold dark:text-white">Faculty Achievement Overview</CardTitle>
           {onAddFaculty && isHeadOfDepartment && !isLoadingRole ? (
@@ -157,64 +158,69 @@ const FacultyTable = ({
             </div>
           )}
         </div>
-        
-        {/* Filters */}
-        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col md:flex-row gap-4 mt-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search by name or department..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search faculty by name or department..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-12 text-base rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
           </div>
-          
-          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Filter by department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.map(dept => (
-                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
-          <Select value={selectedAchievement} onValueChange={setSelectedAchievement}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Filter by achievement" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Achievements</SelectItem>
-              {achievementTypes.map(type => (
-                <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </form>
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <SelectTrigger className="h-12 px-4 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-w-[140px]">
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        {/* Summary Stats */}
+            <Select value={selectedAchievement} onValueChange={setSelectedAchievement}>
+              <SelectTrigger className="h-12 px-4 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-w-[140px]">
+                <SelectValue placeholder="Achievement Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Achievements</SelectItem>
+                {achievementTypes.map((type) => (
+                  <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Achievement Summary - Enhanced for Mobile */}
         {selectedAchievement !== 'all' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-achievement rounded-lg">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200/50 shadow-sm">
+            <div className="text-center p-3 bg-white/60 rounded-lg backdrop-blur-sm">
+              <div className="text-2xl font-bold text-blue-700">
                 {calculateTotal(selectedAchievement)}
               </div>
-              <div className="text-sm text-muted-foreground">Total</div>
+              <div className="text-sm text-blue-600 font-medium">Total</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-success">
+            <div className="text-center p-3 bg-white/60 rounded-lg backdrop-blur-sm">
+              <div className="text-2xl font-bold text-green-700">
                 {Math.round(calculateTotal(selectedAchievement) / filteredFaculty.length)}
               </div>
-              <div className="text-sm text-muted-foreground">Average</div>
+              <div className="text-sm text-green-600 font-medium">Average</div>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-primary-dark">
+            <div className="text-center p-3 bg-white/60 rounded-lg backdrop-blur-sm">
+              <div className="text-lg font-semibold text-purple-700 truncate">
                 {getTopPerformer(selectedAchievement)?.name || 'N/A'}
               </div>
-              <div className="text-sm text-muted-foreground">Top Performer</div>
+              <div className="text-sm text-purple-600 font-medium">Top Performer</div>
             </div>
           </div>
         )}
@@ -222,30 +228,36 @@ const FacultyTable = ({
 
       <CardContent>
         {/* Desktop Table */}
-        <div className="hidden lg:block overflow-x-auto">
-          <Table>
+        <div className="hidden lg:block overflow-x-auto relative">
+          <div className="sticky-table">
+            <Table>
             <TableHeader>
               <TableRow className="bg-tableHeader">
-                <TableHead className="font-semibold dark:text-white">Faculty Name</TableHead>
-                <TableHead className="font-semibold dark:text-white">Designation</TableHead>
-                <TableHead className="font-semibold dark:text-white">Department</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">R&D Proposals (Sangsation)</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">R&D Proposals (Submition)</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Academic Pass %</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Effective Mentoring</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">R&D Funding</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Journal Publications</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Co-Author Journals</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Student Publications</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Book Publications</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Patents</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Online Certifications</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Student Projects</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">FDP Works</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">FDP Worps</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Industry Collaborations</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Other Activities</TableHead>
-                <TableHead className="font-semibold text-center dark:text-white">Actions</TableHead>
+                                  <TableHead 
+                    className="font-semibold dark:text-white min-w-[200px]"
+                    style={{ position: 'sticky', left: 0, zIndex: 20, backgroundColor: '#f3f4f6' }}
+                  >
+                    Faculty Name
+                  </TableHead>
+                  <TableHead className="font-semibold dark:text-white min-w-[150px]">Designation</TableHead>
+                  <TableHead className="font-semibold dark:text-white min-w-[150px]">Department</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[180px]">R&D Proposals (Sangsation)</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[180px]">R&D Proposals (Submition)</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[140px]">Academic Pass %</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[150px]">Effective Mentoring</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[120px]">R&D Funding</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[150px]">Journal Publications</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[150px]">Co-Author Journals</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[150px]">Student Publications</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[150px]">Book Publications</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[120px]">Patents</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[160px]">Online Certifications</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[140px]">Student Projects</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[120px]">FDP Works</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[120px]">FDP Worps</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[160px]">Industry Collaborations</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[140px]">Other Activities</TableHead>
+                <TableHead className="font-semibold text-center dark:text-white min-w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -254,16 +266,21 @@ const FacultyTable = ({
                   key={faculty.id} 
                   className="hover:bg-tableHover transition-colors"
                 >
-                  <TableCell className="font-medium dark:text-white">
-                    <div>
-                      <div className="font-semibold dark:text-white">{faculty.name}</div>
-                      <div className="text-sm text-muted-foreground dark:text-white">{faculty.id}</div>
-                    </div>
+                  <TableCell 
+                    className="font-medium dark:text-white min-w-[200px]"
+                    style={{ position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'white' }}
+                  >
+                  <div>
+                  <div className="font-semibold dark:text-white">{faculty.name}</div>
+                  {isHeadOfDepartment && (
+                  <div className="text-sm text-muted-foreground dark:text-white">{faculty.id}</div>
+                  )}
+                  </div>
                   </TableCell>
-                  <TableCell className="dark:text-white">
+                  <TableCell className="dark:text-white min-w-[150px]">
                     {faculty.designation}
                   </TableCell>
-                  <TableCell className="dark:text-white">
+                  <TableCell className="dark:text-white min-w-[150px]">
                     <Badge variant="secondary" className="text-xs dark:text-white">
                       {faculty.department}
                     </Badge>
@@ -314,46 +331,56 @@ const FacultyTable = ({
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
 
         {/* Mobile Cards */}
         <div className="lg:hidden space-y-4">
           {filteredFaculty.map((faculty) => (
-            <Card key={faculty.id} className="p-4 hover:shadow-md transition-shadow">
-              <div className="space-y-3">
+            <Card key={faculty.id} className="p-5 hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-gradient-to-br from-white to-gray-50/50">
+              <div className="space-y-4">
                 {/* Header */}
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-lg dark:text-white">{faculty.name}</h3>
-                    <p className="text-sm text-muted-foreground dark:text-white">{faculty.id}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900">{faculty.name}</h3>
+                        {isHeadOfDepartment && (
+                          <p className="text-xs text-gray-500 font-mono">{faculty.id}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
                         {faculty.designation}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                         {faculty.department}
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleViewGraph(faculty)}
-                      className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800"
+                      className="h-10 w-10 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full"
                       title="View Individual Graph"
                     >
-                      <BarChart3 className="w-4 h-4" />
+                      <BarChart3 className="w-5 h-5" />
                     </Button>
                     {isHeadOfDepartment && faculty.id !== 'TARGET' && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveFaculty(faculty)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+                        className="h-10 w-10 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full"
                         title="Remove Faculty"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </Button>
                     )}
                   </div>
@@ -361,37 +388,41 @@ const FacultyTable = ({
 
                 {/* Key Metrics Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-2 bg-blue-50 rounded-lg">
-                    <div className="text-xs text-blue-600 font-medium">R&D Proposals</div>
-                    <div className="text-lg font-bold text-blue-700">
+                  <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200/50">
+                    <div className="text-xs text-blue-700 font-semibold mb-1">R&D Proposals</div>
+                    <div className="text-xl font-bold text-blue-800">
                       {(faculty.rdproposalssangsation || 0) + (faculty.rdproposalssubmition || 0)}
                     </div>
                   </div>
-                  <div className="text-center p-2 bg-green-50 rounded-lg">
-                    <div className="text-xs text-green-600 font-medium">Patents</div>
-                    <div className="text-lg font-bold text-green-700">{faculty.patents || 0}</div>
+                  <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200/50">
+                    <div className="text-xs text-green-700 font-semibold mb-1">Patents</div>
+                    <div className="text-xl font-bold text-green-800">{faculty.patents || 0}</div>
                   </div>
-                  <div className="text-center p-2 bg-purple-50 rounded-lg">
-                    <div className="text-xs text-purple-600 font-medium">Publications</div>
-                    <div className="text-lg font-bold text-purple-700">
+                  <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200/50">
+                    <div className="text-xs text-purple-700 font-semibold mb-1">Publications</div>
+                    <div className="text-xl font-bold text-purple-800">
                       {(faculty.journalpublications || 0) + (faculty.bookpublications || 0)}
                     </div>
                   </div>
-                  <div className="text-center p-2 bg-orange-50 rounded-lg">
-                    <div className="text-xs text-orange-600 font-medium">Projects</div>
-                    <div className="text-lg font-bold text-orange-700">{faculty.studentprojects || 0}</div>
+                  <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200/50">
+                    <div className="text-xs text-orange-700 font-semibold mb-1">Projects</div>
+                    <div className="text-xl font-bold text-orange-800">{faculty.studentprojects || 0}</div>
                   </div>
                 </div>
 
                 {/* Additional Info */}
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div className="flex justify-between">
-                    <span>Academic Pass:</span>
-                    <span className="font-medium">{faculty.academicpasspercentage || '90%'}</span>
+                <div className="bg-gray-50/50 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 font-medium">Academic Pass:</span>
+                    <span className="font-bold text-gray-900">{faculty.academicpasspercentage || '90%'}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Mentoring:</span>
-                    <span className="font-medium">{faculty.effectivementoring || 'Yes'}</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 font-medium">Mentoring:</span>
+                    <span className="font-bold text-gray-900">{faculty.effectivementoring || 'Yes'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 font-medium">R&D Funding:</span>
+                    <span className="font-bold text-gray-900">₹{faculty.rdfunding || 0}</span>
                   </div>
                 </div>
               </div>

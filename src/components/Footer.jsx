@@ -82,17 +82,17 @@ const Footer = () => {
 
   return (
     <footer className="bg-background border-t border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8">
           {/* Brand Section */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-primary-foreground" />
+          <div className="sm:col-span-2 lg:col-span-2">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <BarChart3 className="w-6 h-6 text-white" />
               </div>
-              <span className="font-bold text-xl">Faculty Dashboard</span>
+              <span className="font-bold text-xl text-gray-900">Faculty Dashboard</span>
             </div>
-            <p className="text-muted-foreground mb-4 max-w-md">
+            <p className="text-gray-600 mb-6 max-w-md text-sm leading-relaxed">
               Empowering academic excellence through comprehensive faculty performance tracking and analytics.
             </p>
             <div className="flex space-x-4">
@@ -100,7 +100,7 @@ const Footer = () => {
                 <a
                   key={link.name}
                   href={link.href}
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="w-10 h-10 bg-gray-100 hover:bg-blue-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-blue-600 transition-all duration-200"
                   aria-label={link.name}
                 >
                   {link.icon}
@@ -111,13 +111,13 @@ const Footer = () => {
 
           {/* Product Links */}
           <div>
-            <h3 className="font-semibold mb-4">Product</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-4 text-gray-900">Product</h3>
+            <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                    className="text-gray-600 hover:text-blue-600 transition-colors text-sm hover:underline"
                   >
                     {link.name}
                   </Link>
@@ -128,13 +128,13 @@ const Footer = () => {
 
           {/* Company Links */}
           <div>
-            <h3 className="font-semibold mb-4">Company</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-4 text-gray-900">Company</h3>
+            <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                    className="text-gray-600 hover:text-blue-600 transition-colors text-sm hover:underline"
                   >
                     {link.name}
                   </Link>
@@ -145,13 +145,13 @@ const Footer = () => {
 
           {/* Support Links */}
           <div>
-            <h3 className="font-semibold mb-4">Support</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-4 text-gray-900">Support</h3>
+            <ul className="space-y-3">
               {footerLinks.support.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                    className="text-gray-600 hover:text-blue-600 transition-colors text-sm hover:underline"
                   >
                     {link.name}
                   </Link>
@@ -162,13 +162,13 @@ const Footer = () => {
 
           {/* Legal Links */}
           <div>
-            <h3 className="font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-4 text-gray-900">Legal</h3>
+            <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                    className="text-gray-600 hover:text-blue-600 transition-colors text-sm hover:underline"
                   >
                     {link.name}
                   </Link>
@@ -179,31 +179,31 @@ const Footer = () => {
         </div>
 
         {/* Contact Information */}
-        <div className="mt-8 pt-8 border-t border-border">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {contactInfo.map((info, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <span className="text-muted-foreground">{info.icon}</span>
-                <span className="text-sm text-muted-foreground">{info.text}</span>
+              <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <span className="text-blue-600">{info.icon}</span>
+                <span className="text-sm text-gray-700 font-medium">{info.text}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Bottom Section */}
-        <div className="mt-8 pt-8 border-t border-border">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-sm text-muted-foreground">
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            <div className="text-sm text-gray-600">
               © {currentYear} Faculty Dashboard. All rights reserved.
             </div>
-            <div className="flex space-x-6 text-sm text-muted-foreground">
-              <Link to="/about" className="hover:text-primary transition-colors">
+            <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:gap-6 text-sm text-gray-600">
+              <Link to="/about" className="hover:text-blue-600 transition-colors hover:underline">
                 Privacy Policy
               </Link>
-              <Link to="/about" className="hover:text-primary transition-colors">
+              <Link to="/about" className="hover:text-blue-600 transition-colors hover:underline">
                 Terms of Service
               </Link>
-              <Link to="/contact" className="hover:text-primary transition-colors">
+              <Link to="/contact" className="hover:text-blue-600 transition-colors hover:underline">
                 Contact
               </Link>
             </div>

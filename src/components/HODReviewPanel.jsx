@@ -1,0 +1,755 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  CheckCircle, 
+  XCircle, 
+  FileText, 
+  User, 
+  Clock, 
+  Award, 
+  Eye, 
+  Download, 
+  Filter, 
+  Search, 
+  RefreshCw 
+} from 'lucide-react';
+
+const HODReviewPanel = () => {
+  const [submissions, setSubmissions] = useState([]);
+  const [filteredSubmissions, setFilteredSubmissions] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [reviewDialog, setReviewDialog] = useState(false);
+  const [reviewAction, setReviewAction] = useState('');
+  const [reviewReason, setReviewReason] = useState('');
+  const [lastSubmissionCount, setLastSubmissionCount] = useState(0);
+  const [newSubmissionsCount, setNewSubmissionsCount] = useState(0);
+  const { toast } = useToast();
+
+  // Fetch submissions from backend
+  const fetchSubmissions = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      
+      console.log('🔍 Fetching submissions from backend...');
+      const response = await fetch('http://localhost:5000/api/achievements/all');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('📋 Backend response:', data);
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Backend returned error');
+      }
+      
+      // Get all submissions without filtering
+      const allSubmissions = data.data || [];
+      console.log(`📊 Found ${allSubmissions.length} total submissions`);
+      
+      // Show all submissions that have basic data
+      const validSubmissions = allSubmissions.filter(submission => 
+        submission.faculty_id && 
+        submission.faculty_name &&
+        submission.status
+      );
+      
+      console.log(`✅ Valid submissions: ${validSubmissions.length}`);
+      console.log('📋 Submissions data:', validSubmissions);
+      
+      // Log the order of submissions to verify they're in the right order
+      console.log('📅 Submission order check (should be newest first):');
+      validSubmissions.forEach((submission, index) => {
+        console.log(`  ${index + 1}. ID: ${submission.id}, Title: ${submission.title}, Submitted: ${submission.submitted_at}, Status: ${submission.status}`);
+      });
+      
+      // Fetch updated achievement counts for approved submissions
+      const submissionsWithCounts = await fetchFacultyAchievementCounts(validSubmissions);
+      
+      // IMPORTANT: Don't re-sort here! The backend already returns them in the correct order
+      // The backend orders by submitted_at DESC (newest first), so preserve that order
+      const finalSubmissions = submissionsWithCounts;
+      
+      console.log('🎯 Final submissions order (preserving backend order):');
+      finalSubmissions.forEach((submission, index) => {
+        console.log(`  ${index + 1}. ID: ${submission.id}, Title: ${submission.title}, Submitted: ${submission.submitted_at}, Status: ${submission.status}`);
+      });
+      
+      setSubmissions(finalSubmissions);
+      setFilteredSubmissions(finalSubmissions);
+      
+      // Check for new submissions
+      if (lastSubmissionCount > 0 && finalSubmissions.length > lastSubmissionCount) {
+        const newCount = finalSubmissions.length - lastSubmissionCount;
+        setNewSubmissionsCount(newCount);
+        toast({
+          title: "New Submissions Detected! 🆕",
+          description: `${newCount} new submission(s) have been added.`,
+        });
+      }
+      
+      setLastSubmissionCount(finalSubmissions.length);
+      
+      // Verify the order is correct
+      verifySubmissionOrder();
+      
+      if (isRefresh) {
+        toast({
+          title: "Data Refreshed",
+          description: `Found ${validSubmissions.length} submissions.`,
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error fetching submissions:', error);
+      toast({
+        title: "Failed to Load Submissions",
+        description: `Error: ${error.message}`,
+        variant: "destructive"
+      });
+      setSubmissions([]);
+      setFilteredSubmissions([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Check data types
+  const checkDataTypes = () => {
+    console.log('🔍 Checking data types...');
+    submissions.forEach((sub, idx) => {
+      console.log(`  ${idx + 1}. ID: ${sub.id} (${typeof sub.id})`);
+      console.log(`     Title: ${sub.title} (${typeof sub.title})`);
+      console.log(`     Submitted: ${sub.submitted_at} (${typeof sub.submitted_at})`);
+      console.log(`     Status: ${sub.status} (${typeof sub.status})`);
+      console.log(`     Raw submitted_at:`, sub.submitted_at);
+      console.log(`     Parsed date:`, new Date(sub.submitted_at));
+      console.log('     ---');
+    });
+  };
+
+  // Manual sort function to debug ordering
+  const manualSortSubmissions = () => {
+    console.log('🔧 Manually sorting submissions...');
+    
+    const sorted = [...submissions].sort((a, b) => {
+      const dateA = new Date(a.submitted_at);
+      const dateB = new Date(b.submitted_at);
+      console.log(`  Comparing: ${a.title} (${dateA}) vs ${b.title} (${dateB})`);
+      return dateB - dateA; // Newest first
+    });
+    
+    console.log('📊 Manual sort result:');
+    sorted.forEach((sub, idx) => {
+      console.log(`  ${idx + 1}. ID: ${sub.id}, Title: ${sub.title}, Submitted: ${sub.submitted_at}`);
+    });
+    
+    setSubmissions(sorted);
+    setFilteredSubmissions(sorted);
+    
+    toast({
+      title: "Manual Sort Applied",
+      description: "Submissions have been manually sorted by date",
+    });
+  };
+
+  // Test date parsing
+  const testDateParsing = () => {
+    console.log('🧪 Testing date parsing...');
+    submissions.forEach((sub, idx) => {
+      const rawDate = sub.submitted_at;
+      const parsedDate = new Date(rawDate);
+      const isValid = !isNaN(parsedDate.getTime());
+      
+      console.log(`  ${idx + 1}. ID: ${sub.id}, Raw: "${rawDate}", Parsed: ${parsedDate}, Valid: ${isValid}`);
+    });
+  };
+
+  // Verify submission order
+  const verifySubmissionOrder = () => {
+    if (submissions.length < 2) return true;
+    
+    for (let i = 0; i < submissions.length - 1; i++) {
+      const current = new Date(submissions[i].submitted_at);
+      const next = new Date(submissions[i + 1].submitted_at);
+      
+      if (current < next) {
+        console.error(`❌ Order issue: Submission ${i + 1} (${submissions[i].title}) is newer than submission ${i + 2} (${submissions[i + 1].title})`);
+        return false;
+      }
+    }
+    
+    console.log('✅ All submissions are in correct order (newest first)');
+    return true;
+  };
+
+  // Fetch updated faculty achievement counts for approved submissions
+  const fetchFacultyAchievementCounts = async (submissions) => {
+    try {
+      // Get unique faculty IDs from approved submissions
+      const approvedSubmissions = submissions.filter(s => s.status === 'approved');
+      const facultyIds = [...new Set(approvedSubmissions.map(s => s.faculty_id))];
+      
+      if (facultyIds.length === 0) return submissions;
+      
+      console.log('🔍 Fetching updated achievement counts for faculty:', facultyIds);
+      
+      // Fetch faculty data from Supabase
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yfcukflinfinmjvllwin.supabase.co';
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmY3VrZmxpbmZpbm1qdmxsd2luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzNjYzNzIsImV4cCI6MjA2OTk0MjM3Mn0.JtFF_xnwjHtb8WnzbWxAJS5gNyv0u_WI7NgPBGoDJE4';
+      
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      
+      const { data: facultyData, error } = await supabase
+        .from('faculty')
+        .select('id, journalpublications, patents, studentprojects, rdproposalssangsation, rdproposalssubmition, rdfunding, journalscoauthor, studentpublications, bookpublications, onlinecertifications, fdpworks, fdpworps, industrycollabs, otheractivities')
+        .in('id', facultyIds);
+      
+      if (error) {
+        console.error('❌ Error fetching faculty data:', error);
+        return submissions;
+      }
+      
+      // Create a map of faculty ID to achievement counts
+      const facultyCounts = {};
+      facultyData?.forEach(faculty => {
+        facultyCounts[faculty.id] = faculty;
+      });
+      
+      // Update submissions with current achievement counts while preserving order
+      const updatedSubmissions = submissions.map(submission => {
+        if (submission.status === 'approved' && facultyCounts[submission.faculty_id]) {
+          const faculty = facultyCounts[submission.faculty_id];
+          const achievementType = submission.achievement_type;
+          const currentCount = faculty[achievementType] || 0;
+          
+          return {
+            ...submission,
+            current_achievement_count: currentCount,
+            achievement_updated: true
+          };
+        }
+        return submission;
+      });
+      
+      console.log('✅ Updated submissions with current achievement counts (order preserved)');
+      return updatedSubmissions;
+      
+    } catch (error) {
+      console.error('❌ Error fetching faculty achievement counts:', error);
+      return submissions;
+    }
+  };
+
+  // Filter submissions based on search and status
+  useEffect(() => {
+    let filtered = submissions;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(submission =>
+        submission.faculty_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.category?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(submission => submission.status === statusFilter);
+    }
+    
+    setFilteredSubmissions(filtered);
+  }, [submissions, searchTerm, statusFilter]);
+
+  // Handle approval/rejection
+  const handleReview = async (submissionId, action, reason) => {
+    try {
+      console.log('🔍 Reviewing submission:', submissionId, 'Action:', action);
+      
+      const response = await fetch('http://localhost:5000/api/achievements/review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId,
+          action,
+          reason,
+          hodId: 'CSE001' // This should come from the logged-in HOD
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to review submission');
+      }
+
+      const result = await response.json();
+      
+      // Show success message with achievement count update info
+      if (action === 'approve') {
+        toast({
+          title: "Submission Approved & Achievement Count Updated!",
+          description: result.message || "Faculty achievement count has been automatically updated in the database.",
+        });
+      } else {
+        toast({
+          title: "Submission Rejected",
+          description: result.message || `Submission has been ${action}d successfully.`,
+        });
+      }
+
+      // Refresh the submissions list
+      await fetchSubmissions(true);
+      
+      // Close dialog
+      setReviewDialog(false);
+      setSelectedSubmission(null);
+      setReviewAction('');
+      setReviewReason('');
+      
+    } catch (error) {
+      console.error('Review error:', error);
+      toast({
+        title: "Review Failed",
+        description: error.message || "Could not process the review. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Open review dialog
+  const openReviewDialog = (submission, action) => {
+    setSelectedSubmission(submission);
+    setReviewAction(action);
+    setReviewDialog(true);
+  };
+
+  // Get status badge
+  const getStatusBadge = (status) => {
+    const variants = {
+      pending: 'secondary',
+      approved: 'default',
+      rejected: 'destructive'
+    };
+    
+    return (
+      <Badge variant={variants[status] || 'secondary'}>
+        {status?.charAt(0)?.toUpperCase() + status?.slice(1) || 'Unknown'}
+      </Badge>
+    );
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      // Convert to IST (UTC+5:30)
+      const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+      
+      return istDate.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  // Format date in readable IST format
+  const formatDateIST = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      // Convert to IST (UTC+5:30)
+      const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+      
+      const options = {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata'
+      };
+      
+      return istDate.toLocaleDateString('en-IN', options) + ' IST';
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  // Load submissions on component mount
+  useEffect(() => {
+    fetchSubmissions();
+    
+    // Auto-refresh every 2 minutes to catch new submissions
+    const autoRefreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing submissions...');
+      fetchSubmissions(true);
+    }, 2 * 60 * 1000); // 2 minutes
+    
+    return () => clearInterval(autoRefreshInterval);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading submissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">HOD Review Panel</h1>
+          <p className="text-gray-600 mt-2">
+            Review and approve faculty achievement submissions ({submissions.length} total)
+          </p>
+          {submissions.length > 0 && (
+            <div className="mt-2 text-sm text-blue-600">
+              <span className="font-medium">Latest submission:</span> {formatDateIST(submissions[0]?.submitted_at)} - {submissions[0]?.title}
+            </div>
+          )}
+          {submissions.filter(s => s.status === 'pending').length > 0 && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <span className="text-yellow-800 font-medium">
+                ⚠️ {submissions.filter(s => s.status === 'pending').length} pending submission(s) require your review
+              </span>
+            </div>
+          )}
+          {newSubmissionsCount > 0 && (
+            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+              <span className="text-green-800 font-medium">
+                🆕 {newSubmissionsCount} new submission(s) detected since last refresh
+              </span>
+            </div>
+          )}
+        </div>
+        <Button 
+          onClick={() => fetchSubmissions(true)} 
+          disabled={refreshing}
+          variant="outline"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+        <Button 
+          onClick={() => {
+            console.log('🔄 Force refreshing submissions...');
+            setSubmissions([]);
+            setFilteredSubmissions([]);
+            // Clear any cached data and fetch fresh
+            setTimeout(() => fetchSubmissions(true), 100);
+          }} 
+          disabled={refreshing}
+          variant="outline"
+          className="ml-2"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Force Refresh
+        </Button>
+        <Button 
+          onClick={() => {
+            console.log('🧹 Clearing cache and refreshing...');
+            setSubmissions([]);
+            setFilteredSubmissions([]);
+            setSearchTerm('');
+            setStatusFilter('all');
+            // Force a complete refresh
+            setTimeout(() => fetchSubmissions(true), 100);
+          }} 
+          disabled={refreshing}
+          variant="destructive"
+          className="ml-2"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Clear & Refresh
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by faculty name, title, or department..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses ({submissions.length})</SelectItem>
+                <SelectItem value="pending">Pending ({submissions.filter(s => s.status === 'pending').length})</SelectItem>
+                <SelectItem value="approved">Approved ({submissions.filter(s => s.status === 'approved').length})</SelectItem>
+                <SelectItem value="rejected">Rejected ({submissions.filter(s => s.status === 'rejected').length})</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Submissions List */}
+      <div className="space-y-4">
+        {filteredSubmissions.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6 text-center">
+              {submissions.length === 0 ? (
+                <div className="py-12">
+                  <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Submissions Yet</h3>
+                  <p className="text-gray-600">
+                    Faculty members haven't submitted any achievements for review.
+                  </p>
+                  <Button 
+                    onClick={() => fetchSubmissions(true)} 
+                    className="mt-4"
+                    variant="outline"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Check Again
+                  </Button>
+                </div>
+              ) : (
+                <div className="py-12">
+                  <Filter className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Matching Submissions</h3>
+                  <p className="text-gray-600">
+                    Try adjusting your search terms or status filter.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          (() => {
+            console.log('🎨 Rendering submissions in UI order:');
+            filteredSubmissions.forEach((sub, idx) => {
+              console.log(`  ${idx + 1}. ID: ${sub.id}, Title: ${sub.title}, Submitted: ${sub.submitted_at}, Status: ${sub.status}`);
+            });
+            return filteredSubmissions.map((submission, index) => (
+              <Card key={submission.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col lg:flex-row gap-4">
+                    {/* Submission Number and Timestamp */}
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${index === 0 ? 'bg-green-100' : 'bg-purple-100'}`}>
+                        <span className={`text-lg font-bold ${index === 0 ? 'text-green-600' : 'text-purple-600'}`}>
+                          {index === 0 ? '🆕' : `#${index + 1}`}
+                        </span>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-gray-500 mb-1">
+                          {index === 0 ? 'Newest' : 'Submission Order'}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {formatDateIST(submission.submitted_at)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          ID: {submission.id}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* PDF Info */}
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <FileText className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {submission.title || 'Untitled Achievement'}
+                        </h3>
+                        <p className="text-sm text-gray-600 truncate">
+                          {submission.description || 'No description provided'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500">
+                            Category: {submission.category} • Type: {submission.achievement_type}
+                          </span>
+                          {submission.pdf_url && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(submission.pdf_url, '_blank')}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View PDF
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(submission.pdf_url, '_blank')}
+                              >
+                                <Download className="w-3 h-3 mr-1" />
+                                Download
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Faculty Info */}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <User className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">{submission.faculty_name}</p>
+                        <p className="text-sm text-gray-600">{submission.department}</p>
+                        <p className="text-xs text-gray-500">
+                          ID: {submission.faculty_id}
+                        </p>
+                        {submission.status === 'approved' && submission.current_achievement_count !== undefined && (
+                          <div className="mt-1 p-1 bg-green-50 border border-green-200 rounded text-xs">
+                            <span className="text-green-700 font-medium">
+                              Current {submission.achievement_type}: {submission.current_achievement_count}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status and Actions */}
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(submission.status)}
+                        <div className="text-xs text-gray-500">
+                          <Clock className="w-3 h-3 inline mr-1" />
+                          {formatDateIST(submission.submitted_at)}
+                        </div>
+                      </div>
+                      
+                      {submission.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => openReviewDialog(submission, 'approve')}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => openReviewDialog(submission, 'reject')}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          })()
+        )}
+      </div>
+
+      {/* Review Dialog */}
+      <Dialog open={reviewDialog} onOpenChange={setReviewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {reviewAction === 'approve' ? 'Approve' : 'Reject'} Submission
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium mb-2">Submission Details:</h4>
+              <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                <p><strong>Faculty:</strong> {selectedSubmission?.faculty_name}</p>
+                <p><strong>Title:</strong> {selectedSubmission?.title}</p>
+                <p><strong>Category:</strong> {selectedSubmission?.category}</p>
+                <p><strong>Current Count:</strong> {selectedSubmission?.current_count}</p>
+                <p><strong>Requested Increase:</strong> +{selectedSubmission?.requested_increase}</p>
+                {reviewAction === 'approve' && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                    <p className="text-green-800 font-medium">
+                      🎯 Upon Approval: Achievement count will increase from {selectedSubmission?.current_count} to {selectedSubmission?.current_count + (selectedSubmission?.requested_increase || 1)}
+                    </p>
+                    <p className="text-green-700 text-xs mt-1">
+                      This change will be automatically applied to the faculty member's profile.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                {reviewAction === 'approve' ? 'Approval' : 'Rejection'} Reason (Optional):
+              </label>
+              <Textarea
+                placeholder={reviewAction === 'approve' ? 'Add any notes about this approval...' : 'Explain why this submission was rejected...'}
+                value={reviewReason}
+                onChange={(e) => setReviewReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setReviewDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleReview(selectedSubmission.id, reviewAction, reviewReason)}
+                className={reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+              >
+                {reviewAction === 'approve' ? 'Approve' : 'Reject'} Submission
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default HODReviewPanel;

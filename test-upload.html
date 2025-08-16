@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Upload Test - Achievement System</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #34495e; }
+        input, textarea, select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 6px; 
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        button { 
+            background: #3498db; 
+            color: white; 
+            padding: 15px 30px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #95a5a6; cursor: not-allowed; }
+        .result { 
+            margin-top: 20px; 
+            padding: 20px; 
+            border-radius: 6px; 
+            font-weight: 500;
+        }
+        .success { background: #d4edda; border: 2px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 2px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 2px solid #bee5eb; color: #0c5460; }
+        .file-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        .loading { background: #fff3cd; color: #856404; }
+        .step { margin-bottom: 30px; }
+        .step-title { font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Achievement System - PDF Upload Test</h1>
+        
+        <div class="step">
+            <div class="step-title">Step 1: Check System Status</div>
+            <button id="checkStatus" onclick="checkSystemStatus()">🔍 Check System Status</button>
+            <div id="statusResult"></div>
+        </div>
+
+        <div class="step">
+            <div class="step-title">Step 2: Upload PDF & Submit Achievement</div>
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label for="pdf">📄 Select PDF File:</label>
+                    <input type="file" id="pdf" name="pdf" accept=".pdf" required onchange="showFileInfo()">
+                    <div id="fileInfo" class="file-info" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="facultyId">👤 Faculty ID:</label>
+                    <input type="text" id="facultyId" name="facultyId" value="CSE001" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="facultyName">👤 Faculty Name:</label>
+                    <input type="text" id="facultyName" name="facultyName" value="Dr. Test Faculty" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="department">🏢 Department:</label>
+                    <input type="text" id="department" name="department" value="Computer Science" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="category">📂 Category:</label>
+                    <select id="category" name="category" required>
+                        <option value="research_dev">Research & Development</option>
+                        <option value="publication">Publication</option>
+                        <option value="innovation_patents">Innovation & Patents</option>
+                        <option value="student_engagement">Student Engagement</option>
+                        <option value="professional_dev">Professional Development</option>
+                        <option value="industry_others">Industry & Others</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="achievementType">🎯 Achievement Type:</label>
+                    <input type="text" id="achievementType" name="achievementType" value="rdproposals" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">📝 Achievement Title:</label>
+                    <input type="text" id="title" name="title" value="Test Research Proposal" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">📖 Description:</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Brief description of the achievement"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="currentCount">🔢 Current Count:</label>
+                    <input type="number" id="currentCount" name="currentCount" value="5" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="requestedIncrease">➕ Requested Increase:</label>
+                    <input type="number" id="requestedIncrease" name="requestedIncrease" value="1" required>
+                </div>
+                
+                <button type="submit" id="submitBtn">🚀 Upload PDF & Submit Achievement</button>
+            </form>
+            
+            <div id="result"></div>
+        </div>
+
+        <div class="step">
+            <div class="step-title">Step 3: Check Submissions</div>
+            <button id="checkSubmissions" onclick="checkSubmissions()">📋 Check All Submissions</button>
+            <div id="submissionsResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // Check system status
+        async function checkSystemStatus() {
+            const statusBtn = document.getElementById('checkStatus');
+            const statusResult = document.getElementById('statusResult');
+            
+            statusBtn.disabled = true;
+            statusBtn.textContent = '🔍 Checking...';
+            statusResult.innerHTML = '<div class="status loading">Checking system status...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusResult.innerHTML = `<div class="status success">✅ ${data.message}</div>`;
+                } else {
+                    throw new Error('Backend not responding');
+                }
+            } catch (error) {
+                statusResult.innerHTML = `<div class="status error">❌ Backend not accessible: ${error.message}</div>`;
+            } finally {
+                statusBtn.disabled = false;
+                statusBtn.textContent = '🔍 Check System Status';
+            }
+        }
+
+        // Show file info when PDF is selected
+        function showFileInfo() {
+            const fileInput = document.getElementById('pdf');
+            const fileInfo = document.getElementById('fileInfo');
+            
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileInfo.innerHTML = `
+                    <strong>📁 File Selected:</strong> ${file.name}<br>
+                    <strong>📏 Size:</strong> ${sizeMB} MB<br>
+                    <strong>📄 Type:</strong> ${file.type}
+                `;
+                fileInfo.style.display = 'block';
+            } else {
+                fileInfo.style.display = 'none';
+            }
+        }
+
+        // Check all submissions
+        async function checkSubmissions() {
+            const checkBtn = document.getElementById('checkSubmissions');
+            const result = document.getElementById('submissionsResult');
+            
+            checkBtn.disabled = true;
+            checkBtn.textContent = '📋 Checking...';
+            result.innerHTML = '<div class="status loading">Fetching submissions...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/achievements/all');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch submissions');
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    let html = `<div class="status success">✅ Found ${data.data.length} submission(s):</div>`;
+                    data.data.forEach((submission, index) => {
+                        html += `
+                            <div class="file-info">
+                                <strong>Submission ${index + 1}:</strong><br>
+                                <strong>Faculty:</strong> ${submission.faculty_name}<br>
+                                <strong>Title:</strong> ${submission.title}<br>
+                                <strong>Status:</strong> ${submission.status}<br>
+                                <strong>PDF:</strong> ${submission.pdf_name}<br>
+                                <strong>Submitted:</strong> ${new Date(submission.submitted_at).toLocaleString()}
+                            </div>
+                        `;
+                    });
+                    result.innerHTML = html;
+                } else {
+                    result.innerHTML = '<div class="status info">📭 No submissions found in the database.</div>';
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="status error">❌ Error: ${error.message}</div>`;
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = '📋 Check All Submissions';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const result = document.getElementById('result');
+            const pdfFile = document.getElementById('pdf').files[0];
+            
+            if (!pdfFile) {
+                showResult('❌ Please select a PDF file', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🚀 Uploading...';
+            result.innerHTML = '<div class="status loading">Uploading PDF and submitting achievement...</div>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('pdf', pdfFile);
+                formData.append('facultyId', document.getElementById('facultyId').value);
+                formData.append('facultyName', document.getElementById('facultyName').value);
+                formData.append('department', document.getElementById('department').value);
+                formData.append('category', document.getElementById('category').value);
+                formData.append('achievementType', document.getElementById('achievementType').value);
+                formData.append('title', document.getElementById('title').value);
+                formData.append('description', document.getElementById('description').value);
+                formData.append('currentCount', document.getElementById('currentCount').value);
+                formData.append('requestedIncrease', document.getElementById('requestedIncrease').value);
+                
+                console.log('📤 Submitting form data:', {
+                    facultyId: document.getElementById('facultyId').value,
+                    facultyName: document.getElementById('facultyName').value,
+                    category: document.getElementById('category').value,
+                    title: document.getElementById('title').value
+                });
+                
+                const response = await fetch('http://localhost:5000/api/achievements/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const resultData = await response.json();
+                
+                if (response.ok) {
+                    showResult(`✅ Success! ${resultData.message}`, 'success');
+                    console.log('✅ Upload successful:', resultData);
+                    
+                    // Clear form
+                    document.getElementById('uploadForm').reset();
+                    document.getElementById('fileInfo').style.display = 'none';
+                    
+                    // Auto-check submissions after successful upload
+                    setTimeout(checkSubmissions, 1000);
+                } else {
+                    showResult(`❌ Error: ${resultData.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Upload error:', error);
+                showResult(`❌ Network Error: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Upload PDF & Submit Achievement';
+            }
+        });
+        
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Auto-check system status on page load
+        window.addEventListener('load', () => {
+            setTimeout(checkSystemStatus, 500);
+        });
+    </script>
+</body>
+</html>
