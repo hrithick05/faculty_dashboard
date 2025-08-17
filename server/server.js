@@ -15,6 +15,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 app.use(cors({
   origin: NODE_ENV === 'production' 
     ? [
+        'https://t-dashboard-frontend.onrender.com',
         'https://your-frontend-domain.vercel.app',
         'https://your-frontend-domain.netlify.app',
         'https://your-frontend-domain.com'
@@ -87,6 +88,15 @@ async function initializeAchievementSystem() {
 }
 
 // API Routes
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Faculty Dashboard Backend API',
+    status: 'running',
+    endpoints: ['/api/health', '/api/test-code-version']
+  });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
