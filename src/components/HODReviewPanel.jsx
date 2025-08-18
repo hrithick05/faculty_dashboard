@@ -401,7 +401,7 @@ const HODReviewPanel = () => {
       if (data.success) {
         toast({
           title: "Success",
-          description: "Faculty completely deleted from database. All records have been removed.",
+          description: "Faculty detailed fields reset to zero. Basic information preserved.",
         });
         
         // Remove the deleted faculty's submissions from the list
@@ -770,8 +770,8 @@ const HODReviewPanel = () => {
                           onClick={() => openDeleteDialog(submission)}
                           className="mt-2 border-red-200 text-red-600 hover:bg-red-50"
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Delete Faculty Details
+                                                  <Trash2 className="w-4 h-4 mr-1" />
+                        Reset Performance Data
                         </Button>
                       )}
                     </div>
@@ -847,9 +847,9 @@ const HODReviewPanel = () => {
       {/* Delete Faculty Details Dialog */}
       <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-red-600">Delete Faculty Details</DialogTitle>
-          </DialogHeader>
+                  <DialogHeader>
+          <DialogTitle className="text-red-600">Reset Faculty Performance Data</DialogTitle>
+        </DialogHeader>
           
           <div className="space-y-4">
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
@@ -864,10 +864,10 @@ const HODReviewPanel = () => {
                 <li>Review history and notes</li>
               </ul>
               <p className="text-red-700 text-sm mt-2 font-medium">
-                <strong>⚠️ WARNING: This will completely remove the faculty from the system!</strong>
+                <strong>⚠️ WARNING: This will reset all faculty performance metrics to zero!</strong>
               </p>
               <p className="text-red-700 text-sm mt-1">
-                The faculty member will no longer exist in the database and cannot be recovered.
+                All achievement counts, publications, and performance data will be reset to zero/null.
               </p>
             </div>
             

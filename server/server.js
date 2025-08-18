@@ -1624,18 +1624,40 @@ app.post('/api/faculty/delete-details', async (req, res) => {
     // HODs can delete faculty details from any department
     console.log('✅ HOD authorization confirmed:', hodData.designation);
     
-    // Completely delete the faculty record from the database
-    const { error: deleteFacultyError } = await supabase
-      .from('faculty')
-      .delete()
-      .eq('id', facultyId);
+    // Reset all detailed fields to zero/null while keeping basic info
+    const resetData = {
+      rdproposalssangsation: 0,
+      rdproposalssubmition: 0,
+      rdproposals: 0,
+      rdfunding: 0,
+      journalpublications: 0,
+      journalscoauthor: 0,
+      studentpublications: 0,
+      bookpublications: 0,
+      patents: 0,
+      onlinecertifications: 0,
+      studentprojects: 0,
+      fdpworks: 0,
+      fdpworps: 0,
+      industrycollabs: 0,
+      otheractivities: 0,
+      academicpasspercentage: null,
+      effectivementoring: null
+    };
     
-    if (deleteFacultyError) {
-      console.error('❌ Error deleting faculty record:', deleteFacultyError);
-      throw new Error(`Failed to delete faculty record: ${deleteFacultyError.message}`);
+    // Update faculty record to reset all detailed fields
+    const { data: updatedFaculty, error: updateError } = await supabase
+      .from('faculty')
+      .update(resetData)
+      .eq('id', facultyId)
+      .select('*');
+    
+    if (updateError) {
+      console.error('❌ Error updating faculty record:', updateError);
+      throw new Error(`Failed to update faculty record: ${updateError.message}`);
     }
     
-    console.log('✅ Faculty record completely deleted from database');
+    console.log('✅ Faculty detailed fields reset to zero/null');
     
     // Delete related achievement submissions
     const { error: deleteSubmissionsError } = await supabase
@@ -1663,8 +1685,9 @@ app.post('/api/faculty/delete-details', async (req, res) => {
       console.log('⚠️ No faculty_passwords table found, skipping password deletion');
     }
     
-    console.log('✅ Faculty completely deleted from database by HOD:', hodId);
-    console.log('📋 Deleted faculty information:', {
+    console.log('✅ Faculty detailed fields reset to zero by HOD:', hodId);
+    console.log('📋 Reset fields:', Object.keys(resetData));
+    console.log('📋 Faculty basic info preserved:', {
       id: facultyData.id,
       name: facultyData.name,
       department: facultyData.department,
@@ -1673,13 +1696,9 @@ app.post('/api/faculty/delete-details', async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: 'Faculty completely deleted from database',
-      deletedFaculty: {
-        id: facultyData.id,
-        name: facultyData.name,
-        department: facultyData.department,
-        designation: facultyData.designation
-      },
+      message: 'Faculty detailed fields reset to zero. Basic information preserved.',
+      updatedFaculty: updatedFaculty,
+      resetFields: Object.keys(resetData),
       deletedBy: {
         id: hodData.id,
         name: hodData.name,
