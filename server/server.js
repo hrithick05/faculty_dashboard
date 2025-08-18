@@ -16,9 +16,13 @@ app.use(cors({
   origin: NODE_ENV === 'production' 
     ? [
         'https://t-dashboard-frontend.onrender.com',
+        'https://t-dashboard-ten.vercel.app',
         'https://your-frontend-domain.vercel.app',
         'https://your-frontend-domain.netlify.app',
-        'https://your-frontend-domain.com'
+        'https://your-frontend-domain.com',
+        'http://localhost:8080',
+        'http://localhost:3000',
+        'http://localhost:5173'
       ]
     : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
   credentials: true
