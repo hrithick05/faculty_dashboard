@@ -1624,24 +1624,18 @@ app.post('/api/faculty/delete-details', async (req, res) => {
     // HODs can delete faculty details from any department
     console.log('✅ HOD authorization confirmed:', hodData.designation);
     
-    // Prepare the data to keep (name, department, designation)
-    const dataToKeep = {
-      name: facultyData.name,
-      department: facultyData.department,
-      designation: facultyData.designation
-    };
-    
-    // Update faculty record to keep only essential information
-    const { data: updatedFaculty, error: updateError } = await supabase
+    // Completely delete the faculty record from the database
+    const { error: deleteFacultyError } = await supabase
       .from('faculty')
-      .update(dataToKeep)
-      .eq('id', facultyId)
-      .select('id, name, department, designation');
+      .delete()
+      .eq('id', facultyId);
     
-    if (updateError) {
-      console.error('❌ Error updating faculty record:', updateError);
-      throw new Error(`Failed to update faculty record: ${updateError.message}`);
+    if (deleteFacultyError) {
+      console.error('❌ Error deleting faculty record:', deleteFacultyError);
+      throw new Error(`Failed to delete faculty record: ${deleteFacultyError.message}`);
     }
+    
+    console.log('✅ Faculty record completely deleted from database');
     
     // Delete related achievement submissions
     const { error: deleteSubmissionsError } = await supabase
@@ -1669,13 +1663,23 @@ app.post('/api/faculty/delete-details', async (req, res) => {
       console.log('⚠️ No faculty_passwords table found, skipping password deletion');
     }
     
-    console.log('✅ Faculty details deleted successfully by HOD:', hodId);
-    console.log('📋 Kept information:', dataToKeep);
+    console.log('✅ Faculty completely deleted from database by HOD:', hodId);
+    console.log('📋 Deleted faculty information:', {
+      id: facultyData.id,
+      name: facultyData.name,
+      department: facultyData.department,
+      designation: facultyData.designation
+    });
     
     res.json({ 
       success: true, 
-      message: 'Faculty details deleted successfully',
-      deletedFaculty: updatedFaculty,
+      message: 'Faculty completely deleted from database',
+      deletedFaculty: {
+        id: facultyData.id,
+        name: facultyData.name,
+        department: facultyData.department,
+        designation: facultyData.designation
+      },
       deletedBy: {
         id: hodData.id,
         name: hodData.name,

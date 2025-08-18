@@ -401,7 +401,7 @@ const HODReviewPanel = () => {
       if (data.success) {
         toast({
           title: "Success",
-          description: "Faculty details deleted successfully. Only name, department, and designation remain.",
+          description: "Faculty completely deleted from database. All records have been removed.",
         });
         
         // Remove the deleted faculty's submissions from the list
@@ -864,13 +864,11 @@ const HODReviewPanel = () => {
                 <li>Review history and notes</li>
               </ul>
               <p className="text-red-700 text-sm mt-2 font-medium">
-                <strong>Only the following information will be preserved:</strong>
+                <strong>⚠️ WARNING: This will completely remove the faculty from the system!</strong>
               </p>
-              <ul className="text-green-700 text-sm mt-1 list-disc list-inside">
-                <li>Faculty name</li>
-                <li>Department</li>
-                <li>Designation</li>
-              </ul>
+              <p className="text-red-700 text-sm mt-1">
+                The faculty member will no longer exist in the database and cannot be recovered.
+              </p>
             </div>
             
             <div className="bg-gray-50 p-3 rounded-lg">
