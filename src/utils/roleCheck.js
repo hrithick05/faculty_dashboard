@@ -39,7 +39,9 @@ export async function checkIsHeadOfDepartment(facultyId) {
     console.log('🔍 Database designation:', data.designation);
     console.log('🔍 Comparing with "Head of Department"');
     
-    const isHeadOfDepartment = data.designation === 'Head of Department';
+    const isHeadOfDepartment = data.designation?.toLowerCase().includes('hod') || 
+                               data.designation?.toLowerCase().includes('head') || 
+                               data.designation?.toLowerCase().includes('chair');
     console.log('✅ Designation check result:', data.designation, 'isHeadOfDepartment:', isHeadOfDepartment);
     
     return isHeadOfDepartment;
