@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { getCookie } from "@/utils/cookies";
 import { 
   CheckCircle, 
   XCircle, 
@@ -39,6 +40,13 @@ const HODReviewPanel = () => {
   const [facultyToDelete, setFacultyToDelete] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const { toast } = useToast();
+
+  // Get current user info
+  const getCurrentUser = () => {
+    const localFaculty = localStorage.getItem('loggedInFaculty');
+    const cookieFaculty = getCookie('loggedInFaculty');
+    return localFaculty ? JSON.parse(localFaculty) : cookieFaculty ? JSON.parse(cookieFaculty) : null;
+  };
 
   // Fetch submissions from backend
   const fetchSubmissions = async (isRefresh = false) => {
@@ -355,6 +363,17 @@ const HODReviewPanel = () => {
 
   // Delete faculty details
   const handleDeleteFaculty = async () => {
+    const currentUser = getCurrentUser();
+    
+    if (!currentUser) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to perform this action",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (deleteConfirmation !== 'DELETE_FACULTY_DETAILS') {
       toast({
         title: "Invalid Confirmation",
@@ -372,7 +391,7 @@ const HODReviewPanel = () => {
         },
         body: JSON.stringify({
           facultyId: facultyToDelete.faculty_id,
-          hodId: 'HOD001', // This should come from user context/authentication
+          hodId: getCurrentUser()?.id,
           confirmation: deleteConfirmation
         }),
       });
@@ -743,16 +762,18 @@ const HODReviewPanel = () => {
                         </div>
                       )}
                       
-                      {/* Delete Faculty Details Button - Available for all submissions */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openDeleteDialog(submission)}
-                        className="mt-2 border-red-200 text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        Delete Faculty Details
-                      </Button>
+                      {/* Delete Faculty Details Button - Only for HODs */}
+                      {getCurrentUser()?.designation?.toLowerCase().includes('hod') && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDeleteDialog(submission)}
+                          className="mt-2 border-red-200 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete Faculty Details
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -858,6 +879,16 @@ const HODReviewPanel = () => {
                 <p><strong>Name:</strong> {facultyToDelete?.faculty_name}</p>
                 <p><strong>ID:</strong> {facultyToDelete?.faculty_id}</p>
                 <p><strong>Department:</strong> {facultyToDelete?.department}</p>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <h4 className="font-medium mb-2 text-blue-800">HOD Performing Action:</h4>
+              <div className="text-sm text-blue-700">
+                <p><strong>Name:</strong> {getCurrentUser()?.name}</p>
+                <p><strong>ID:</strong> {getCurrentUser()?.id}</p>
+                <p><strong>Designation:</strong> {getCurrentUser()?.designation}</p>
+                <p><strong>Department:</strong> {getCurrentUser()?.department}</p>
               </div>
             </div>
             
