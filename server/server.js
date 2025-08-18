@@ -1621,13 +1621,8 @@ app.post('/api/faculty/delete-details', async (req, res) => {
       });
     }
     
-    // Check if HOD is from the same department
-    if (hodData.department !== facultyData.department) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'HOD can only delete details of faculty from their own department' 
-      });
-    }
+    // HODs can delete faculty details from any department
+    console.log('✅ HOD authorization confirmed:', hodData.designation);
     
     // Prepare the data to keep (name, department, designation)
     const dataToKeep = {
