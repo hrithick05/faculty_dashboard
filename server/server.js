@@ -1646,6 +1646,9 @@ app.post('/api/faculty/delete-details', async (req, res) => {
     };
     
     // Update faculty record to reset all detailed fields
+    console.log('🔍 About to reset faculty fields:', resetData);
+    console.log('🔍 Faculty ID to reset:', facultyId);
+    
     const { data: updatedFaculty, error: updateError } = await supabase
       .from('faculty')
       .update(resetData)
@@ -1658,6 +1661,7 @@ app.post('/api/faculty/delete-details', async (req, res) => {
     }
     
     console.log('✅ Faculty detailed fields reset to zero/null');
+    console.log('📋 Updated faculty data:', updatedFaculty);
     
     // Delete related achievement submissions
     const { error: deleteSubmissionsError } = await supabase
