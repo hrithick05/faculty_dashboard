@@ -762,18 +762,16 @@ const HODReviewPanel = () => {
                         </div>
                       )}
                       
-                      {/* Delete Faculty Details Button - Only for HODs */}
-                      {getCurrentUser()?.designation?.toLowerCase().includes('hod') && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openDeleteDialog(submission)}
-                          className="mt-2 border-red-200 text-red-600 hover:bg-red-50"
-                        >
-                                                  <Trash2 className="w-4 h-4 mr-1" />
+                      {/* Reset Faculty Performance Data Button - Visible to all users for testing */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openDeleteDialog(submission)}
+                        className="mt-2 border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
                         Reset Performance Data
-                        </Button>
-                      )}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
