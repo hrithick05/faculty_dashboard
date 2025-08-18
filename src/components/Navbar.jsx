@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { getCookie, setCookie } from "@/utils/cookies";
+import { useNavigate } from 'react-router-dom';
 import { 
   Menu, 
   X, 
@@ -21,6 +25,8 @@ const Navbar = () => {
   const [isChangeFacultyIdOpen, setIsChangeFacultyIdOpen] = useState(false);
   const [newFacultyId, setNewFacultyId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const faculty = JSON.parse(localStorage.getItem('loggedInFaculty'));
@@ -31,7 +37,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('loggedInFaculty');
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const handleChangeFacultyId = async () => {
@@ -42,7 +48,8 @@ const Navbar = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/faculty/change-faculty-id', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/faculty/change-faculty-id`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +100,7 @@ const Navbar = () => {
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => window.location.href = '/hod-review'}
+                onClick={() => navigate('/hod-review')}
                 className="bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300"
               >
                 <Award className="w-4 h-4 mr-2" />
@@ -170,7 +177,7 @@ const Navbar = () => {
               <Button 
                 variant="ghost" 
                 className="w-full justify-start py-4 rounded-xl"
-                onClick={() => window.location.href = '/hod-review'}
+                onClick={() => navigate('/hod-review')}
               >
                 <div className="p-2 rounded-lg bg-orange-50">
                   <Award className="w-4 h-4" />

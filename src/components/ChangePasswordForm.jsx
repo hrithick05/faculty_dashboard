@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock, CheckCircle } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const ChangePasswordForm = ({ facultyId, onClose }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ const ChangePasswordForm = ({ facultyId, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -93,7 +95,8 @@ const ChangePasswordForm = ({ facultyId, onClose }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch('http://localhost:5000/api/faculty/change-password', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/faculty/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +122,7 @@ const ChangePasswordForm = ({ facultyId, onClose }) => {
           onClose();
           // Clear session and redirect to login
           localStorage.removeItem('loggedInFaculty');
-          window.location.href = '/login';
+          navigate('/login');
         }, 2000);
       } else {
         throw new Error(result.message || 'Failed to change password');

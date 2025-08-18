@@ -41,12 +41,90 @@ const HODReviewPanel = () => {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const { toast } = useToast();
 
-  // Get current user info
+  // Get current user info with better error handling
   const getCurrentUser = () => {
-    const localFaculty = localStorage.getItem('loggedInFaculty');
-    const cookieFaculty = getCookie('loggedInFaculty');
-    return localFaculty ? JSON.parse(localFaculty) : cookieFaculty ? JSON.parse(cookieFaculty) : null;
+    try {
+      const localFaculty = localStorage.getItem('loggedInFaculty');
+      const cookieFaculty = getCookie('loggedInFaculty');
+      
+      console.log('🔍 Getting current user in HODReviewPanel:');
+      console.log('  - localStorage faculty:', localFaculty);
+      console.log('  - cookie faculty:', cookieFaculty);
+      
+      const faculty = localFaculty ? JSON.parse(localFaculty) : cookieFaculty;
+      
+      if (!faculty) {
+        console.log('❌ No faculty data found in storage or cookies');
+        return null;
+      }
+      
+      console.log('✅ Current user:', faculty);
+      console.log('  - ID:', faculty.id);
+      console.log('  - Name:', faculty.name);
+      console.log('  - Designation:', faculty.designation);
+      console.log('  - Department:', faculty.department);
+      
+      return faculty;
+    } catch (error) {
+      console.error('❌ Error getting current user:', error);
+      return null;
+    }
   };
+
+  // Check if current user is HOD
+  const isCurrentUserHOD = () => {
+    const user = getCurrentUser();
+    if (!user) return false;
+    
+    const designation = user.designation?.toLowerCase() || '';
+    const isHOD = designation.includes('hod') || 
+                   designation.includes('head') || 
+                   designation.includes('chair') ||
+                   designation.includes('professor') ||
+                   designation.includes('director');
+    
+    console.log('🔍 HOD check for user:', user.name);
+    console.log('  - Designation:', designation);
+    console.log('  - Is HOD:', isHOD);
+    
+    return isHOD;
+  };
+
+  // Verify user permissions on component mount
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user) {
+      console.log('❌ No user found, redirecting to login');
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access the HOD Review Panel",
+        variant: "destructive"
+      });
+      // Redirect to login after a delay
+      setTimeout(() => {
+        window.location.href = '/#/login';
+      }, 2000);
+      return;
+    }
+    
+    if (!isCurrentUserHOD()) {
+      console.log('❌ User is not HOD, redirecting to dashboard');
+      toast({
+        title: "Access Denied",
+        description: "Only Head of Department can access this panel",
+        variant: "destructive"
+      });
+      // Redirect to dashboard after a delay
+      setTimeout(() => {
+        window.location.href = '/#/dashboard';
+      }, 2000);
+      return;
+    }
+    
+    console.log('✅ User authenticated and authorized as HOD');
+    // Start fetching data
+    fetchSubmissions();
+  }, []);
 
   // Fetch submissions from backend
   const fetchSubmissions = async (isRefresh = false) => {
@@ -58,7 +136,8 @@ const HODReviewPanel = () => {
       }
       
       console.log('🔍 Fetching submissions from backend...');
-      const response = await fetch('http://localhost:5000/api/achievements/all');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/achievements/all`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -295,7 +374,8 @@ const HODReviewPanel = () => {
     try {
       console.log('🔍 Reviewing submission:', submissionId, 'Action:', action);
       
-      const response = await fetch('http://localhost:5000/api/achievements/review', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/achievements/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -338,10 +418,10 @@ const HODReviewPanel = () => {
       setReviewReason('');
       
     } catch (error) {
-      console.error('Review error:', error);
+      console.error('❌ Review error:', error);
       toast({
         title: "Review Failed",
-        description: error.message || "Could not process the review. Please try again.",
+        description: error.message || "Could not process review. Please try again.",
         variant: "destructive"
       });
     }
@@ -361,65 +441,55 @@ const HODReviewPanel = () => {
     setDeleteDialog(true);
   };
 
-  // Delete faculty details
+  // Handle faculty deletion
   const handleDeleteFaculty = async () => {
-    const currentUser = getCurrentUser();
-    
-    if (!currentUser) {
+    if (deleteConfirmation !== facultyToDelete?.faculty_name) {
       toast({
-        title: "Authentication Error",
-        description: "Please log in to perform this action",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (deleteConfirmation !== 'DELETE_FACULTY_DETAILS') {
-      toast({
-        title: "Invalid Confirmation",
-        description: "Please type exactly: DELETE_FACULTY_DETAILS",
-        variant: "destructive",
+        title: "Confirmation Mismatch",
+        description: "Please type the faculty name exactly to confirm deletion.",
+        variant: "destructive"
       });
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/faculty/delete-details', {
-        method: 'POST',
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/faculty/delete-details`, {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          facultyId: facultyToDelete.faculty_id,
-          hodId: getCurrentUser()?.id,
-          confirmation: deleteConfirmation
-        }),
+          facultyId: facultyToDelete.faculty_id
+        })
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: "Faculty detailed fields reset to zero. Basic information preserved.",
-        });
-        
-        // Remove the deleted faculty's submissions from the list
-        setSubmissions(prev => prev.filter(s => s.faculty_id !== facultyToDelete.faculty_id));
-        setFilteredSubmissions(prev => prev.filter(s => s.faculty_id !== facultyToDelete.faculty_id));
-        
-        setDeleteDialog(false);
-        setFacultyToDelete(null);
-        setDeleteConfirmation('');
-      } else {
-        throw new Error(data.message || 'Failed to delete faculty details');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete faculty');
       }
-    } catch (error) {
-      console.error('Error deleting faculty details:', error);
+
+      const result = await response.json();
+      
       toast({
-        title: "Error",
-        description: error.message || 'Failed to delete faculty details',
-        variant: "destructive",
+        title: "Faculty Deleted Successfully",
+        description: result.message || "Faculty details have been removed from the system.",
+      });
+
+      // Refresh submissions to reflect the deletion
+      await fetchSubmissions(true);
+      
+      // Close dialog
+      setDeleteDialog(false);
+      setFacultyToDelete(null);
+      setDeleteConfirmation('');
+      
+    } catch (error) {
+      console.error('❌ Delete faculty error:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Could not delete faculty. Please try again.",
+        variant: "destructive"
       });
     }
   };
@@ -509,6 +579,20 @@ const HODReviewPanel = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Debug Section - Only show in development */}
+      {import.meta.env.DEV && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <h3 className="text-sm font-medium text-yellow-800 mb-2">🔍 Debug Info (Development Only)</h3>
+          <div className="text-xs text-yellow-700 space-y-1">
+            <div>Current User: {getCurrentUser()?.name || 'None'}</div>
+            <div>Designation: {getCurrentUser()?.designation || 'None'}</div>
+            <div>Is HOD: {isCurrentUserHOD() ? 'Yes' : 'No'}</div>
+            <div>localStorage: {localStorage.getItem('loggedInFaculty') ? 'Present' : 'Empty'}</div>
+            <div>Cookie: {getCookie('loggedInFaculty') ? 'Present' : 'Empty'}</div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

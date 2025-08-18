@@ -41,7 +41,8 @@ const FacultyDetailView = () => {
       console.log('🔄 Refreshing achievement counts for faculty:', faculty.id);
       
       // Fetch latest faculty data from database
-      const response = await fetch(`http://localhost:5000/api/faculty/${faculty.id}`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/faculty/${faculty.id}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch updated faculty data');
@@ -220,7 +221,8 @@ const FacultyDetailView = () => {
       });
       
       // Upload to backend
-      const response = await fetch('http://localhost:5000/api/achievements/submit', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/achievements/submit`, {
         method: 'POST',
         body: formData
       });
