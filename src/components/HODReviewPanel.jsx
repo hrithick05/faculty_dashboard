@@ -18,7 +18,8 @@ import {
   Download, 
   Filter, 
   Search, 
-  RefreshCw 
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 
 const HODReviewPanel = () => {
@@ -34,6 +35,9 @@ const HODReviewPanel = () => {
   const [reviewReason, setReviewReason] = useState('');
   const [lastSubmissionCount, setLastSubmissionCount] = useState(0);
   const [newSubmissionsCount, setNewSubmissionsCount] = useState(0);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [facultyToDelete, setFacultyToDelete] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const { toast } = useToast();
 
   // Fetch submissions from backend
@@ -340,6 +344,65 @@ const HODReviewPanel = () => {
     setSelectedSubmission(submission);
     setReviewAction(action);
     setReviewDialog(true);
+  };
+
+  // Open delete faculty dialog
+  const openDeleteDialog = (submission) => {
+    setFacultyToDelete(submission);
+    setDeleteConfirmation('');
+    setDeleteDialog(true);
+  };
+
+  // Delete faculty details
+  const handleDeleteFaculty = async () => {
+    if (deleteConfirmation !== 'DELETE_FACULTY_DETAILS') {
+      toast({
+        title: "Invalid Confirmation",
+        description: "Please type exactly: DELETE_FACULTY_DETAILS",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/api/faculty/delete-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          facultyId: facultyToDelete.faculty_id,
+          hodId: 'HOD001', // This should come from user context/authentication
+          confirmation: deleteConfirmation
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Faculty details deleted successfully. Only name, department, and designation remain.",
+        });
+        
+        // Remove the deleted faculty's submissions from the list
+        setSubmissions(prev => prev.filter(s => s.faculty_id !== facultyToDelete.faculty_id));
+        setFilteredSubmissions(prev => prev.filter(s => s.faculty_id !== facultyToDelete.faculty_id));
+        
+        setDeleteDialog(false);
+        setFacultyToDelete(null);
+        setDeleteConfirmation('');
+      } else {
+        throw new Error(data.message || 'Failed to delete faculty details');
+      }
+    } catch (error) {
+      console.error('Error deleting faculty details:', error);
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to delete faculty details',
+        variant: "destructive",
+      });
+    }
   };
 
   // Get status badge
@@ -679,6 +742,17 @@ const HODReviewPanel = () => {
                           </Button>
                         </div>
                       )}
+                      
+                      {/* Delete Faculty Details Button - Available for all submissions */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openDeleteDialog(submission)}
+                        className="mt-2 border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete Faculty Details
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -743,6 +817,80 @@ const HODReviewPanel = () => {
                 className={reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
               >
                 {reviewAction === 'approve' ? 'Approve' : 'Reject'} Submission
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Faculty Details Dialog */}
+      <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete Faculty Details</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <h4 className="font-medium text-red-800 mb-2">⚠️ Warning: This action cannot be undone!</h4>
+              <p className="text-red-700 text-sm">
+                This will permanently delete all faculty details including:
+              </p>
+              <ul className="text-red-700 text-sm mt-2 list-disc list-inside">
+                <li>All achievement submissions</li>
+                <li>Performance metrics and counts</li>
+                <li>Custom passwords</li>
+                <li>Review history and notes</li>
+              </ul>
+              <p className="text-red-700 text-sm mt-2 font-medium">
+                <strong>Only the following information will be preserved:</strong>
+              </p>
+              <ul className="text-green-700 text-sm mt-1 list-disc list-inside">
+                <li>Faculty name</li>
+                <li>Department</li>
+                <li>Designation</li>
+              </ul>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <h4 className="font-medium mb-2">Faculty to Delete:</h4>
+              <div className="text-sm">
+                <p><strong>Name:</strong> {facultyToDelete?.faculty_name}</p>
+                <p><strong>ID:</strong> {facultyToDelete?.faculty_id}</p>
+                <p><strong>Department:</strong> {facultyToDelete?.department}</p>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2 text-red-600">
+                Type exactly "DELETE_FACULTY_DETAILS" to confirm:
+              </label>
+              <Input
+                placeholder="DELETE_FACULTY_DETAILS"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                className="border-red-200 focus:border-red-500"
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteDialog(false);
+                  setFacultyToDelete(null);
+                  setDeleteConfirmation('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteFaculty}
+                variant="destructive"
+                disabled={deleteConfirmation !== 'DELETE_FACULTY_DETAILS'}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Faculty Details
               </Button>
             </div>
           </div>

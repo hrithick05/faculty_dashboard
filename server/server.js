@@ -547,8 +547,8 @@ app.get('/api/debug/database', async (req, res) => {
     // Check recent submissions
     const { data: recentData, error: recentError } = await supabase
       .from('achievement_submissions')
-      .select('id, faculty_id, status, submission_date')
-      .order('submission_date', { ascending: false })
+              .select('id, faculty_id, status, submitted_at')
+        .order('submitted_at', { ascending: false })
       .limit(10);
     
     if (recentError) {
@@ -655,12 +655,12 @@ app.get('/api/achievements/all', async (req, res) => {
     console.log(`📊 Total submissions in table: ${count}`);
     
     // Now get the actual data with detailed logging
-    console.log('🔍 Executing query: SELECT * FROM achievement_submissions ORDER BY submission_date DESC');
+    console.log('🔍 Executing query: SELECT * FROM achievement_submissions ORDER BY submitted_at DESC');
     
     const { data, error } = await supabase
       .from('achievement_submissions')
       .select('*')
-      .order('submission_date', { ascending: false });
+      .order('submitted_at', { ascending: false });
     
     if (error) {
       console.error('❌ Error fetching submissions:', error);
@@ -672,7 +672,7 @@ app.get('/api/achievements/all', async (req, res) => {
     // Convert timestamps to IST and format for display
     const formattedData = data?.map(submission => ({
       ...submission,
-              submission_date_ist: convertToIST(submission.submission_date),
+              submission_date_ist: convertToIST(submission.submitted_at),
         reviewed_at_ist: submission.reviewed_at ? convertToIST(submission.reviewed_at) : null
     })) || [];
     
@@ -680,7 +680,7 @@ app.get('/api/achievements/all', async (req, res) => {
     if (formattedData && formattedData.length > 0) {
       console.log('📋 All submissions details:');
       formattedData.forEach((submission, index) => {
-        console.log(`  ${index + 1}. ID: ${submission.id}, Status: ${submission.status}, Faculty ID: ${submission.faculty_id}, Submitted: ${submission.submission_date}`);
+        console.log(`  ${index + 1}. ID: ${submission.id}, Status: ${submission.status}, Faculty ID: ${submission.faculty_id}, Submitted: ${submission.submitted_at}`);
       });
     } else {
       console.log('📋 No submissions found in data');
@@ -1559,6 +1559,142 @@ app.post('/api/faculty/auth', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: error.message || 'Authentication failed' 
+    });
+  }
+});
+
+// HOD Delete Faculty Details (keeps only name, department, designation)
+app.post('/api/faculty/delete-details', async (req, res) => {
+  try {
+    const { facultyId, hodId, confirmation } = req.body;
+    console.log('🗑️ HOD delete faculty details request:', { facultyId, hodId });
+    
+    if (!facultyId || !hodId || !confirmation) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Faculty ID, HOD ID, and confirmation are required' 
+      });
+    }
+    
+    if (confirmation !== 'DELETE_FACULTY_DETAILS') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Confirmation text must be exactly: DELETE_FACULTY_DETAILS' 
+      });
+    }
+    
+    // First, verify the HOD exists and has authority
+    const { data: hodData, error: hodError } = await supabase
+      .from('faculty')
+      .select('id, name, designation, department')
+      .eq('id', hodId)
+      .single();
+    
+    if (hodError || !hodData) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'HOD not found' 
+      });
+    }
+    
+    // Check if the person is actually an HOD (you can customize this logic)
+    if (!hodData.designation.toLowerCase().includes('hod') && 
+        !hodData.designation.toLowerCase().includes('head') && 
+        !hodData.designation.toLowerCase().includes('chair')) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Only HODs can perform this action' 
+      });
+    }
+    
+    // Get the faculty member to be deleted
+    const { data: facultyData, error: facultyError } = await supabase
+      .from('faculty')
+      .select('*')
+      .eq('id', facultyId)
+      .single();
+    
+    if (facultyError || !facultyData) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Faculty member not found' 
+      });
+    }
+    
+    // Check if HOD is from the same department
+    if (hodData.department !== facultyData.department) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'HOD can only delete details of faculty from their own department' 
+      });
+    }
+    
+    // Prepare the data to keep (name, department, designation)
+    const dataToKeep = {
+      name: facultyData.name,
+      department: facultyData.department,
+      designation: facultyData.designation
+    };
+    
+    // Update faculty record to keep only essential information
+    const { data: updatedFaculty, error: updateError } = await supabase
+      .from('faculty')
+      .update(dataToKeep)
+      .eq('id', facultyId)
+      .select('id, name, department, designation');
+    
+    if (updateError) {
+      console.error('❌ Error updating faculty record:', updateError);
+      throw new Error(`Failed to update faculty record: ${updateError.message}`);
+    }
+    
+    // Delete related achievement submissions
+    const { error: deleteSubmissionsError } = await supabase
+      .from('achievement_submissions')
+      .delete()
+      .eq('faculty_id', facultyId);
+    
+    if (deleteSubmissionsError) {
+      console.error('⚠️ Warning: Could not delete achievement submissions:', deleteSubmissionsError);
+      // Don't fail the entire operation for this
+    }
+    
+    // Delete custom passwords if they exist
+    try {
+      const { error: deletePasswordError } = await supabase
+        .from('faculty_passwords')
+        .delete()
+        .eq('faculty_id', facultyId);
+      
+      if (deletePasswordError) {
+        console.error('⚠️ Warning: Could not delete custom passwords:', deletePasswordError);
+        // Don't fail the entire operation for this
+      }
+    } catch (passwordDeleteError) {
+      console.log('⚠️ No faculty_passwords table found, skipping password deletion');
+    }
+    
+    console.log('✅ Faculty details deleted successfully by HOD:', hodId);
+    console.log('📋 Kept information:', dataToKeep);
+    
+    res.json({ 
+      success: true, 
+      message: 'Faculty details deleted successfully',
+      deletedFaculty: updatedFaculty,
+      deletedBy: {
+        id: hodData.id,
+        name: hodData.name,
+        designation: hodData.designation,
+        department: hodData.department
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in HOD delete faculty details:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to delete faculty details' 
     });
   }
 });
