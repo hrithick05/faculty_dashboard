@@ -13,22 +13,59 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Middleware
 app.use(cors({
-  origin: NODE_ENV === 'production' 
-    ? [
-        'https://t-dashboard-frontend.onrender.com',
-        'https://t-dashboard-ten.vercel.app',
-        'https://your-frontend-domain.vercel.app',
-        'https://your-frontend-domain.netlify.app',
-        'https://your-frontend-domain.com',
-        'http://localhost:8080',
-        'http://localhost:3000',
-        'http://localhost:5173'
-      ]
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Log the origin for debugging
+    console.log('🌐 CORS Request from origin:', origin);
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('✅ Allowing request with no origin');
+      return callback(null, true);
+    }
+    
+    const allowedOrigins = NODE_ENV === 'production' 
+      ? [
+          'https://t-dashboard-frontend.onrender.com',
+          'https://t-dashboard-ten.vercel.app',
+          'https://your-frontend-domain.vercel.app',
+          'https://your-frontend-domain.netlify.app',
+          'https://your-frontend-domain.com',
+          'http://localhost:8080',
+          'http://localhost:3000',
+          'http://localhost:5173'
+        ]
+      : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'];
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS allowed for origin:', origin);
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
+
+// Handle CORS preflight requests
+app.options('*', cors());
+
+// Additional CORS headers middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Log CORS headers being set
+  console.log('🔧 Setting CORS headers for request from:', req.headers.origin);
+  
+  next();
+});
 
 // Supabase configuration
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
