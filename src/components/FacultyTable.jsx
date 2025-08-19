@@ -47,11 +47,12 @@ const FacultyTable = ({
         console.log('🔍 FacultyTable: Database role check result:', isHead);
         
         // SECURITY: Force hide admin features unless explicitly confirmed as HOD
-        if (isHead === true) {
+        if (isHead === true && typeof isHead === 'boolean') {
           console.log('✅ FacultyTable: User confirmed as HOD');
           setIsHeadOfDepartment(true);
         } else {
           console.log('❌ FacultyTable: User is NOT HOD - hiding all admin features');
+          console.log('🔍 isHead value:', isHead, 'type:', typeof isHead);
           setIsHeadOfDepartment(false);
         }
       } catch (error) {
@@ -236,6 +237,14 @@ const FacultyTable = ({
           {/* TEMPORARY DEBUG - Show current role status */}
           <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-xs text-gray-700">
             <strong>Current Status:</strong> isHeadOfDepartment = {String(isHeadOfDepartment)}, isLoadingRole = {String(isLoadingRole)}
+            <br />
+            <strong>FORCE HIDE:</strong> 
+            <button 
+              onClick={() => setIsHeadOfDepartment(false)} 
+              className="ml-2 px-2 py-1 bg-red-500 text-white rounded text-xs"
+            >
+              Force Hide All Admin
+            </button>
           </div>
           
           {/* Admin Elements - ONLY SHOW FOR HODs */}

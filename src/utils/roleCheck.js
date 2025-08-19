@@ -42,18 +42,16 @@ export async function checkIsHeadOfDepartment(facultyId) {
     const designation = data.designation?.toLowerCase() || '';
     console.log('🔍 Checking designation:', designation);
     
-    // STRICT HOD CHECK - only allow actual HOD designations
-    const isHeadOfDepartment = designation.includes('hod') || 
-                               designation === 'head of department' ||
-                               designation === 'hod';
+    // EXTREMELY STRICT HOD CHECK - only allow exact matches
+    const isHeadOfDepartment = designation === 'head of department' || 
+                               designation === 'hod' ||
+                               designation === 'head of department';
     
     console.log('✅ Designation check result:', designation, 'isHeadOfDepartment:', isHeadOfDepartment);
-    console.log('🔍 Matches found:');
-    console.log('  - hod:', designation.includes('hod'));
-    console.log('  - head:', designation.includes('head'));
-    console.log('  - chair:', designation.includes('chair'));
-    console.log('  - professor:', designation.includes('professor'));
-    console.log('  - director:', designation.includes('director'));
+    console.log('🔍 Exact matches checked:');
+    console.log('  - "head of department":', designation === 'head of department');
+    console.log('  - "hod":', designation === 'hod');
+    console.log('  - Current designation:', `"${designation}"`);
     
     return isHeadOfDepartment;
   } catch (error) {
