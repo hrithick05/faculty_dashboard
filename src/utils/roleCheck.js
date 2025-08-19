@@ -42,11 +42,10 @@ export async function checkIsHeadOfDepartment(facultyId) {
     const designation = data.designation?.toLowerCase() || '';
     console.log('🔍 Checking designation:', designation);
     
+    // STRICT HOD CHECK - only allow actual HOD designations
     const isHeadOfDepartment = designation.includes('hod') || 
-                               designation.includes('head') || 
-                               designation.includes('chair') ||
-                               designation.includes('professor') ||
-                               designation.includes('director');
+                               designation === 'head of department' ||
+                               designation === 'hod';
     
     console.log('✅ Designation check result:', designation, 'isHeadOfDepartment:', isHeadOfDepartment);
     console.log('🔍 Matches found:');

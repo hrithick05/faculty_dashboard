@@ -46,13 +46,13 @@ const FacultyTable = ({
         const isHead = await isCurrentUserHeadOfDepartment();
         console.log('🔍 FacultyTable: Database role check result:', isHead);
         
-        // Set HOD status based ONLY on database result
-        setIsHeadOfDepartment(isHead);
-        
-        if (isHead) {
+        // SECURITY: Force hide admin features unless explicitly confirmed as HOD
+        if (isHead === true) {
           console.log('✅ FacultyTable: User confirmed as HOD');
+          setIsHeadOfDepartment(true);
         } else {
           console.log('❌ FacultyTable: User is NOT HOD - hiding all admin features');
+          setIsHeadOfDepartment(false);
         }
       } catch (error) {
         console.error('❌ FacultyTable: Error checking user role:', error);
@@ -247,6 +247,20 @@ const FacultyTable = ({
             {/* Debug Info - Remove this after testing */}
             <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
               <strong>Debug:</strong> isHeadOfDepartment = {String(isHeadOfDepartment)}, isLoadingRole = {String(isLoadingRole)}
+              <br />
+              <strong>Test:</strong> 
+              <button 
+                onClick={() => setIsHeadOfDepartment(false)} 
+                className="ml-2 px-2 py-1 bg-red-500 text-white rounded text-xs"
+              >
+                Force Hide Admin
+              </button>
+              <button 
+                onClick={() => setIsHeadOfDepartment(true)} 
+                className="ml-2 px-2 py-1 bg-green-500 text-white rounded text-xs"
+              >
+                Force Show Admin
+              </button>
             </div>
             
             {/* Add Faculty Button - ONLY VISIBLE TO HODs */}
