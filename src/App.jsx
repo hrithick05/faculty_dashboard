@@ -128,13 +128,13 @@ function HeadOfDepartmentRoute({ children }) {
 const queryClient = new QueryClient();
 
 // Component to conditionally render navbar and footer
-const LayoutWrapper = ({ children, theme, toggleTheme }) => {
+const LayoutWrapper = ({ children }) => {
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
 
   return (
     <div className="min-h-screen flex flex-col">
-      {!isLoginPage && <Navbar theme={theme} toggleTheme={toggleTheme} />}
+      {!isLoginPage && <Navbar />}
       <main className="flex-1">
         {children}
       </main>
@@ -187,7 +187,7 @@ const AppContent = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <LayoutWrapper theme={theme} toggleTheme={toggleTheme}>
+            <LayoutWrapper>
               <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/about" element={<About />} />

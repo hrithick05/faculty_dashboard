@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Edit, Eye, Plus, BarChart3, Trash2, User } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Filter, Edit, Eye, Plus, BarChart3, Trash2, User, AlertTriangle } from "lucide-react";
 import { achievementTypes } from '../data/mockFaculty';
 import { getCookie } from '../utils/cookies';
 import { isCurrentUserHeadOfDepartment } from '../utils/roleCheck';
@@ -30,6 +31,9 @@ const FacultyTable = ({
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [isHeadOfDepartment, setIsHeadOfDepartment] = useState(false);
   const [isLoadingRole, setIsLoadingRole] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [facultyToDelete, setFacultyToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState(''); // 'complete' or 'reset'
 
   // Check user's role from database
   useEffect(() => {
@@ -102,38 +106,95 @@ const FacultyTable = ({
     navigate(`/faculty-stats/${faculty.id}`);
   };
 
-  // Handle remove faculty
-  const handleRemoveFaculty = async (faculty) => {
+  // Handle remove faculty - open delete dialog
+  const handleRemoveFaculty = (faculty) => {
     if (!isHeadOfDepartment) {
       return;
     }
+    setFacultyToDelete(faculty);
+    setDeleteDialog(true);
+  };
 
-    if (confirm(`Are you sure you want to remove ${faculty.name}? This action cannot be undone.`)) {
-      try {
-        const { error } = await supabase
-          .from('faculty')
-          .delete()
-          .eq('id', faculty.id);
+  // Handle complete faculty deletion
+  const handleCompleteDelete = async () => {
+    if (!facultyToDelete) return;
 
-        if (error) {
-          console.error('Error removing faculty:', error);
-          alert('Failed to remove faculty. Please try again.');
-        } else {
-          console.log('Faculty removed successfully:', faculty.name);
-          // Call the parent callback to refresh the data
-          if (onRemoveFaculty) {
-            onRemoveFaculty();
-          }
+    try {
+      const { error } = await supabase
+        .from('faculty')
+        .delete()
+        .eq('id', facultyToDelete.id);
+
+      if (error) {
+        console.error('Error removing faculty:', error);
+        alert('Failed to remove faculty. Please try again.');
+      } else {
+        console.log('Faculty removed successfully:', facultyToDelete.name);
+        // Call the parent callback to refresh the data
+        if (onRemoveFaculty) {
+          onRemoveFaculty();
         }
-      } catch (error) {
-        console.error('Exception removing faculty:', error);
-        alert('An error occurred while removing faculty.');
+        setDeleteDialog(false);
+        setFacultyToDelete(null);
       }
+    } catch (error) {
+      console.error('Exception removing faculty:', error);
+      alert('An error occurred while removing faculty.');
+    }
+  };
+
+  // Handle reset faculty performance data
+  const handleResetPerformance = async () => {
+    if (!facultyToDelete) return;
+
+    try {
+      // Reset all performance metrics to zero/null
+      const resetData = {
+        rdproposalssangsation: 0,
+        rdproposalssubmition: 0,
+        rdproposals: 0,
+        rdfunding: 0,
+        journalpublications: 0,
+        journalscoauthor: 0,
+        studentpublications: 0,
+        bookpublications: 0,
+        patents: 0,
+        onlinecertifications: 0,
+        studentprojects: 0,
+        fdpworks: 0,
+        fdpworps: 0,
+        industrycollabs: 0,
+        otheractivities: 0,
+        academicpasspercentage: null,
+        effectivementoring: null
+      };
+
+      const { error } = await supabase
+        .from('faculty')
+        .update(resetData)
+        .eq('id', facultyToDelete.id);
+
+      if (error) {
+        console.error('Error resetting faculty performance:', error);
+        alert('Failed to reset faculty performance. Please try again.');
+      } else {
+        console.log('Faculty performance reset successfully:', facultyToDelete.name);
+        // Call the parent callback to refresh the data
+        if (onRemoveFaculty) {
+          onRemoveFaculty();
+        }
+        setDeleteDialog(false);
+        setFacultyToDelete(null);
+      }
+    } catch (error) {
+      console.error('Exception resetting faculty performance:', error);
+      alert('An error occurred while resetting faculty performance.');
     }
   };
 
   return (
-    <Card className="w-full">
+    <>
+      <Card className="w-full">
       <CardHeader className="space-y-4">
         {/* Title and Add Faculty Button */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -437,6 +498,77 @@ const FacultyTable = ({
         )}
       </CardContent>
     </Card>
+
+    {/* Delete Faculty Confirmation Dialog */}
+    <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-red-600 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Delete Faculty Options
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+            <h4 className="font-medium text-red-800 mb-2">⚠️ Warning: This action cannot be undone!</h4>
+            <p className="text-red-700 text-sm">
+              Faculty: <strong>{facultyToDelete?.name}</strong> ({facultyToDelete?.id})
+            </p>
+            <p className="text-red-700 text-sm">
+              Department: <strong>{facultyToDelete?.department}</strong>
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <h5 className="font-medium text-blue-800 mb-2">Option 1: Reset Performance Data</h5>
+              <p className="text-blue-700 text-sm">
+                • Keeps faculty record (name, department, designation)
+                • Resets all performance metrics to zero
+                • Faculty can start fresh with clean slate
+              </p>
+              <Button
+                onClick={handleResetPerformance}
+                variant="outline"
+                className="mt-2 w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                Reset Performance Data
+              </Button>
+            </div>
+            
+            <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+              <h5 className="font-medium text-red-800 mb-2">Option 2: Complete Deletion</h5>
+              <p className="text-red-700 text-sm">
+                • Completely removes faculty from database
+                • All data permanently deleted
+                • Cannot be recovered
+              </p>
+              <Button
+                onClick={handleCompleteDelete}
+                variant="destructive"
+                className="mt-2 w-full"
+              >
+                Delete Faculty Completely
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialog(false);
+                setFacultyToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 

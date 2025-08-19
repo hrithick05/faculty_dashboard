@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getCookie, setCookie } from "@/utils/cookies";
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from "@/contexts/ThemeContext";
 import { 
   Menu, 
   X, 
@@ -15,7 +16,9 @@ import {
   Bell,
   Filter,
   Edit3,
-  Award
+  Award,
+  Sun,
+  Moon
 } from "lucide-react";
 
 const Navbar = () => {
@@ -27,6 +30,7 @@ const Navbar = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const faculty = JSON.parse(localStorage.getItem('loggedInFaculty'));
@@ -83,13 +87,13 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className={`${theme === 'dark' ? 'bg-gray-900 shadow-lg border-b border-gray-700' : 'bg-white shadow-sm border-b border-gray-200'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-gray-900">Faculty Dashboard</h1>
+              <h1 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Faculty Dashboard</h1>
             </div>
           </div>
 
@@ -107,6 +111,21 @@ const Navbar = () => {
                 HOD Review
               </Button>
             )}
+
+            {/* Theme Toggle Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className={`${theme === 'dark' ? 'text-gray-300 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? (
+                <Moon className="w-4 h-4" />
+              ) : (
+                <Sun className="w-4 h-4" />
+              )}
+            </Button>
 
             {/* User Menu */}
             <div className="relative">
@@ -170,7 +189,7 @@ const Navbar = () => {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
+        <div className={`md:hidden ${theme === 'dark' ? 'bg-gray-900 border-t border-gray-700' : 'bg-white border-t border-gray-200'}`}>
           <div className="px-4 py-6 space-y-4">
             {/* HOD Review Button - Only show for HODs */}
             {loggedInFaculty?.designation === 'Head of Department' && (
@@ -186,15 +205,33 @@ const Navbar = () => {
               </Button>
             )}
 
+            {/* Theme Toggle Button */}
+            <Button
+              variant="ghost"
+              className={`w-full justify-start py-4 rounded-xl ${theme === 'dark' ? 'text-gray-300 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+              onClick={toggleTheme}
+            >
+              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                {theme === 'light' ? (
+                  <Moon className="w-4 h-4" />
+                ) : (
+                  <Sun className="w-4 h-4" />
+                )}
+              </div>
+              <span className="ml-3">
+                Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
+              </span>
+            </Button>
+
             {/* User Info */}
-            <div className="pt-4 border-t border-gray-200">
+            <div className={`pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className="flex items-center space-x-3 pb-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <User className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{loggedInFaculty?.name || 'User'}</p>
-                  <p className="text-xs text-gray-500">{loggedInFaculty?.designation || 'Faculty'}</p>
+                  <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{loggedInFaculty?.name || 'User'}</p>
+                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{loggedInFaculty?.designation || 'Faculty'}</p>
                 </div>
               </div>
               
@@ -227,9 +264,9 @@ const Navbar = () => {
       {/* Change Faculty ID Modal */}
       {isChangeFacultyIdOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-6 w-full max-w-md mx-4`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Change Faculty ID</h2>
+              <h2 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Change Faculty ID</h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -245,19 +282,19 @@ const Navbar = () => {
             
             <div className="space-y-4">
               <div>
-                <Label htmlFor="currentFacultyId" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="currentFacultyId" className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                   Current Faculty ID
                 </Label>
                 <Input
                   id="currentFacultyId"
                   value={loggedInFaculty?.id || ''}
                   disabled
-                  className="mt-1 bg-gray-50"
+                  className={`mt-1 ${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-50'}`}
                 />
               </div>
               
               <div>
-                <Label htmlFor="newFacultyId" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="newFacultyId" className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                   New Faculty ID
                 </Label>
                 <Input
@@ -266,7 +303,7 @@ const Navbar = () => {
                   value={newFacultyId}
                   onChange={(e) => setNewFacultyId(e.target.value)}
                   placeholder="Enter new Faculty ID"
-                  className="mt-1"
+                  className={`mt-1 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : ''}`}
                 />
               </div>
               
