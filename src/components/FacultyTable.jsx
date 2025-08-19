@@ -235,30 +235,20 @@ const FacultyTable = ({
           <CardTitle className="text-xl font-bold dark:text-white">Faculty Achievement Overview</CardTitle>
           
           {/* Admin Elements - ONLY SHOW FOR HODs */}
-          {isHeadOfDepartment === true && (
-            <div className="flex items-center gap-4">
-              {/* Role Status Indicator */}
-              <div className="px-3 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 border border-green-200">
-                ✅ HOD Access - Admin Features Enabled
-              </div>
-              
-              {/* Add Faculty Button */}
-              {onAddFaculty && !isLoadingRole && (
-                <Button 
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🔍 Add Faculty button clicked');
-                    onAddFaculty();
-                  }} 
-                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 hover:from-green-600 hover:to-emerald-600 shadow-lg transform hover:scale-105 transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Faculty
-                </Button>
-              )}
-            </div>
+          {isHeadOfDepartment === true && onAddFaculty && !isLoadingRole && (
+            <Button 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔍 Add Faculty button clicked');
+                onAddFaculty();
+              }} 
+              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 hover:from-green-600 hover:to-emerald-600 shadow-lg transform hover:scale-105 transition-all duration-200"
+            >
+              <Plus className="w-4 h-4" />
+              Add Faculty
+            </Button>
           )}
         </div>
 
