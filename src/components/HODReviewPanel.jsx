@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCookie } from "@/utils/cookies";
+import { useNavigate } from 'react-router-dom';
 import { 
   CheckCircle, 
   XCircle, 
@@ -20,10 +21,12 @@ import {
   Filter, 
   Search, 
   RefreshCw,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from 'lucide-react';
 
 const HODReviewPanel = () => {
+  const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,7 +105,7 @@ const HODReviewPanel = () => {
       });
       // Redirect to login after a delay
       setTimeout(() => {
-        window.location.href = '/#/login';
+        navigate('/login');
       }, 2000);
       return;
     }
@@ -116,7 +119,7 @@ const HODReviewPanel = () => {
       });
       // Redirect to dashboard after a delay
       setTimeout(() => {
-        window.location.href = '/#/dashboard';
+        navigate('/dashboard');
       }, 2000);
       return;
     }
@@ -595,71 +598,81 @@ const HODReviewPanel = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">HOD Review Panel</h1>
-          <p className="text-gray-600 mt-2">
-            Review and approve faculty achievement submissions ({submissions.length} total)
-          </p>
-          {submissions.length > 0 && (
-            <div className="mt-2 text-sm text-blue-600">
-              <span className="font-medium">Latest submission:</span> {formatDateIST(submissions[0]?.submitted_at)} - {submissions[0]?.title}
-            </div>
-          )}
-          {submissions.filter(s => s.status === 'pending').length > 0 && (
-            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <span className="text-yellow-800 font-medium">
-                ⚠️ {submissions.filter(s => s.status === 'pending').length} pending submission(s) require your review
-              </span>
-            </div>
-          )}
-          {newSubmissionsCount > 0 && (
-            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-              <span className="text-green-800 font-medium">
-                🆕 {newSubmissionsCount} new submission(s) detected since last refresh
-              </span>
-            </div>
-          )}
+        <div className="flex items-center gap-4">
+          <Button 
+            onClick={() => navigate('/dashboard')} 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">HOD Review Panel</h1>
+            <p className="text-gray-600 mt-2">
+              Review and approve faculty achievement submissions ({submissions.length} total)
+            </p>
+            {submissions.length > 0 && (
+              <div className="mt-2 text-sm text-blue-600">
+                <span className="font-medium">Latest submission:</span> {formatDateIST(submissions[0]?.submitted_at)} - {submissions[0]?.title}
+              </div>
+            )}
+            {submissions.filter(s => s.status === 'pending').length > 0 && (
+              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <span className="text-yellow-800 font-medium">
+                  ⚠️ {submissions.filter(s => s.status === 'pending').length} pending submission(s) require your review
+                </span>
+              </div>
+            )}
+            {newSubmissionsCount > 0 && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                <span className="text-green-800 font-medium">
+                  🆕 {newSubmissionsCount} new submission(s) detected since last refresh
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-        <Button 
-          onClick={() => fetchSubmissions(true)} 
-          disabled={refreshing}
-          variant="outline"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-        <Button 
-          onClick={() => {
-            console.log('🔄 Force refreshing submissions...');
-            setSubmissions([]);
-            setFilteredSubmissions([]);
-            // Clear any cached data and fetch fresh
-            setTimeout(() => fetchSubmissions(true), 100);
-          }} 
-          disabled={refreshing}
-          variant="outline"
-          className="ml-2"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Force Refresh
-        </Button>
-        <Button 
-          onClick={() => {
-            console.log('🧹 Clearing cache and refreshing...');
-            setSubmissions([]);
-            setFilteredSubmissions([]);
-            setSearchTerm('');
-            setStatusFilter('all');
-            // Force a complete refresh
-            setTimeout(() => fetchSubmissions(true), 100);
-          }} 
-          disabled={refreshing}
-          variant="destructive"
-          className="ml-2"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Clear & Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => fetchSubmissions(true)} 
+            disabled={refreshing}
+            variant="outline"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button 
+            onClick={() => {
+              console.log('🔄 Force refreshing submissions...');
+              setSubmissions([]);
+              setFilteredSubmissions([]);
+              // Clear any cached data and fetch fresh
+              setTimeout(() => fetchSubmissions(true), 100);
+            }} 
+            disabled={refreshing}
+            variant="outline"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Force Refresh
+          </Button>
+          <Button 
+            onClick={() => {
+              console.log('🧹 Clearing cache and refreshing...');
+              setSubmissions([]);
+              setFilteredSubmissions([]);
+              setSearchTerm('');
+              setStatusFilter('all');
+              // Force a complete refresh
+              setTimeout(() => fetchSubmissions(true), 100);
+            }} 
+            disabled={refreshing}
+            variant="destructive"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Clear & Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
