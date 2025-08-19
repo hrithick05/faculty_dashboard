@@ -35,37 +35,30 @@ const FacultyTable = ({
   const [facultyToDelete, setFacultyToDelete] = useState(null);
   const [deleteType, setDeleteType] = useState(''); // 'complete' or 'reset'
 
-  // Check user's role from database
+  // Check user's role from database - STRICT HOD ONLY
   useEffect(() => {
     async function checkUserRole() {
       try {
         setIsLoadingRole(true);
         console.log('🔍 FacultyTable: Checking user role...');
         
-        // Try database check first
+        // ONLY use database check - no fallback to stored designation
         const isHead = await isCurrentUserHeadOfDepartment();
         console.log('🔍 FacultyTable: Database role check result:', isHead);
         
-        // If database check fails, try stored designation as fallback
-        if (!isHead) {
-          const localFaculty = localStorage.getItem('loggedInFaculty');
-          const cookieFaculty = getCookie('loggedInFaculty');
-          const faculty = localFaculty ? JSON.parse(localFaculty) : cookieFaculty;
-          const storedIsHead = faculty?.designation === 'Head of Department';
-          console.log('🔍 FacultyTable: Fallback check result:', storedIsHead);
-          setIsHeadOfDepartment(storedIsHead);
+        // Set HOD status based ONLY on database result
+        setIsHeadOfDepartment(isHead);
+        
+        if (isHead) {
+          console.log('✅ FacultyTable: User confirmed as HOD');
         } else {
-          setIsHeadOfDepartment(isHead);
+          console.log('❌ FacultyTable: User is NOT HOD - hiding all admin features');
         }
       } catch (error) {
         console.error('❌ FacultyTable: Error checking user role:', error);
-        // Fallback to stored designation
-        const localFaculty = localStorage.getItem('loggedInFaculty');
-        const cookieFaculty = getCookie('loggedInFaculty');
-        const faculty = localFaculty ? JSON.parse(localFaculty) : cookieFaculty;
-        const storedIsHead = faculty?.designation === 'Head of Department';
-        console.log('🔍 FacultyTable: Fallback after error:', storedIsHead);
-        setIsHeadOfDepartment(storedIsHead);
+        // If there's an error, assume user is NOT HOD for security
+        setIsHeadOfDepartment(false);
+        console.log('🔒 FacultyTable: Security fallback - treating user as non-HOD');
       } finally {
         setIsLoadingRole(false);
       }
@@ -111,15 +104,28 @@ const FacultyTable = ({
     console.log('🔒 FacultyTable: Delete button clicked for faculty:', faculty.name);
     console.log('🔒 FacultyTable: Current user isHeadOfDepartment:', isHeadOfDepartment);
     
-    if (!isHeadOfDepartment) {
+    // STRICT HOD CHECK - no exceptions
+    if (!isHeadOfDepartment || isHeadOfDepartment === false) {
       console.log('❌ FacultyTable: Access denied - User is not HOD');
       alert('Access denied. Only Head of Department can perform this action.');
       return;
     }
     
-    console.log('✅ FacultyTable: Access granted - Opening delete dialog');
-    setFacultyToDelete(faculty);
-    setDeleteDialog(true);
+    // Additional security: check if user is still HOD in database
+    isCurrentUserHeadOfDepartment().then(isStillHOD => {
+      if (!isStillHOD) {
+        console.log('❌ FacultyTable: Security check failed - user lost HOD status');
+        alert('Security check failed. Please refresh the page and try again.');
+        return;
+      }
+      
+      console.log('✅ FacultyTable: Access granted - Opening delete dialog');
+      setFacultyToDelete(faculty);
+      setDeleteDialog(true);
+    }).catch(error => {
+      console.error('❌ FacultyTable: Security check error:', error);
+      alert('Security check failed. Please refresh the page and try again.');
+    });
   };
 
   // Handle complete faculty deletion
@@ -233,9 +239,9 @@ const FacultyTable = ({
                 ? 'bg-gray-100 text-gray-600' 
                 : isHeadOfDepartment 
                   ? 'bg-green-100 text-green-700 border border-green-200' 
-                  : 'bg-orange-100 text-orange-700 border border-orange-200'
+                  : 'bg-red-100 text-red-700 border border-red-200'
             }`}>
-              {isLoadingRole ? '🔄 Checking Role...' : isHeadOfDepartment ? '✅ HOD Access' : '👤 Faculty Access'}
+              {isLoadingRole ? '🔄 Checking Role...' : isHeadOfDepartment ? '✅ HOD Access - Admin Features Enabled' : '🚫 Faculty Access - Admin Features Hidden'}
             </div>
             
             {/* Add Faculty Button */}
@@ -535,6 +541,20 @@ const FacultyTable = ({
         {filteredFaculty.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             No faculty members found matching your criteria.
+          </div>
+        )}
+        
+        {/* Admin Features Notice */}
+        {!isLoadingRole && !isHeadOfDepartment && (
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-center">
+              <h4 className="text-blue-800 font-medium mb-2">🔒 Admin Features Hidden</h4>
+              <p className="text-blue-700 text-sm">
+                You are viewing this dashboard as a faculty member. 
+                <br />
+                <strong>Delete options, Add Faculty, and administrative features are only visible to Head of Department.</strong>
+              </p>
+            </div>
           </div>
         )}
       </CardContent>
