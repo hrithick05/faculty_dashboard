@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { achievementTypes, fetchFacultyData, supabase } from '../data/mockFaculty';
+import './TopPerformer.css';
 
 // Helper to calculate total achievements for a faculty member
 const getTotalAchievements = (faculty) => {
@@ -115,24 +116,55 @@ const TopPerformer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header with enhanced styling */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent mb-2">
+        {/* Header with enhanced styling - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent mb-2 animate-fade-in">
             🏆 Top Performers
           </h1>
-          <p className="text-purple-700 dark:text-purple-300 text-lg">Faculty members with the highest total achievements</p>
+          <p className="text-purple-700 dark:text-purple-300 text-base sm:text-lg px-2">Faculty members with the highest total achievements</p>
+          
+                     {/* Mobile Stats Summary */}
+           <div className="mt-4 sm:hidden">
+             <div className="mobile-stats-grid max-w-xs mx-auto">
+               <div className="mobile-achievement-card">
+                 <div className="text-lg font-bold text-purple-600">{facultyWithRankings.length}</div>
+                 <div className="text-xs text-gray-600">Faculty</div>
+               </div>
+               <div className="mobile-achievement-card">
+                 <div className="text-lg font-bold text-pink-600">{facultyWithRankings[0]?.totalAchievements || 0}</div>
+                 <div className="text-xs text-gray-600">Top Score</div>
+               </div>
+               <div className="mobile-achievement-card">
+                 <div className="text-lg font-bold text-blue-600">{Math.round(facultyWithRankings.reduce((sum, f) => sum + f.totalAchievements, 0) / facultyWithRankings.length)}</div>
+                 <div className="text-xs text-gray-600">Average</div>
+               </div>
+             </div>
+           </div>
         </div>
 
-        {/* Top 10 Chart with enhanced styling */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl mb-8 border border-purple-200 dark:border-purple-700">
-          <h2 className="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+        {/* Top 10 Chart with enhanced styling - Mobile Optimized */}
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-4 sm:p-8 shadow-2xl mb-6 sm:mb-8 border border-purple-200 dark:border-purple-700">
+          <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
              Achievement Rankings
           </h2>
-          <div className="w-full" style={{ height: `${Math.max(400, chartData.length * 50)}px` }}>
+          
+          {/* Mobile Chart Toggle */}
+          <div className="sm:hidden mb-4">
+            <div className="flex justify-center space-x-2">
+              <button className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg font-medium text-sm">
+                Chart View
+              </button>
+              <button className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg font-medium text-sm">
+                List View
+              </button>
+            </div>
+          </div>
+          
+          <div className="w-full" style={{ height: `${Math.max(300, chartData.length * 40)}px` }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ top: 20, right: 100, left: 40, bottom: 5 }}>
+              <BarChart data={chartData} layout="vertical" margin={{ top: 20, right: 60, left: 30, bottom: 5 }}>
                 <XAxis 
                   type="number" 
                   tick={{ fontSize: 14, fill: '#8B5CF6' }} 
@@ -141,8 +173,8 @@ const TopPerformer = () => {
                 <YAxis 
                   dataKey="name" 
                   type="category" 
-                  tick={{ fontSize: 14, fill: '#8B5CF6', fontWeight: 'bold' }} 
-                  width={220} 
+                  tick={{ fontSize: 12, fill: '#8B5CF6', fontWeight: 'bold' }} 
+                  width={window.innerWidth < 640 ? 120 : 220} 
                   interval={0} 
                   axisLine={{ stroke: '#8B5CF6', strokeWidth: 2 }}
                 />
@@ -192,30 +224,58 @@ const TopPerformer = () => {
           </div>
         </div>
 
-        {/* Ranking List with enhanced styling */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl">
-          <h3 className="text-2xl font-bold text-center mb-6 flex items-center justify-center gap-2">
-            <span className="text-3xl">🎯</span>
+        {/* Ranking List with enhanced styling - Mobile Optimized */}
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-4 sm:p-8 shadow-2xl">
+          <h3 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6 flex items-center justify-center gap-2">
+            <span className="text-2xl sm:text-3xl">🎯</span>
             <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Detailed Rankings</span>
           </h3>
-          <div className="grid gap-4">
+          
+          {/* Mobile Quick Stats */}
+          <div className="sm:hidden mb-4">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-3 text-center">
+              <div className="text-sm text-gray-600">🏆 Top 3 This Month</div>
+              <div className="text-xs text-gray-500">Click any faculty to view detailed stats</div>
+            </div>
+          </div>
+          
+          <div className="grid gap-3 sm:gap-4">
             {facultyWithRankings.map((faculty, idx) => (
               <div
                 key={faculty.id}
-                className={`flex items-center gap-4 p-6 rounded-2xl transition-all duration-300 shadow-lg cursor-pointer group transform hover:scale-105 hover:shadow-2xl
+                className={`mobile-card mobile-touchable flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-4 sm:p-6 rounded-2xl transition-all duration-300 shadow-lg cursor-pointer group transform hover:scale-105 hover:shadow-2xl relative
                   ${idx === 0 ? 'bg-gradient-to-r from-yellow-200 via-yellow-100 to-yellow-50 dark:from-yellow-900/40 dark:via-yellow-800/40 dark:to-yellow-700/40 font-bold text-yellow-900 dark:text-yellow-100 border-2 border-yellow-300 dark:border-yellow-700 shadow-yellow-200/50' :
                     idx === 1 ? 'bg-gradient-to-r from-gray-200 via-gray-100 to-gray-50 dark:from-gray-700/40 dark:via-gray-800/40 dark:to-gray-700/40 text-gray-900 dark:text-gray-100 border-2 border-gray-300 dark:border-gray-700 shadow-gray-200/50' :
                     idx === 2 ? 'bg-gradient-to-r from-orange-200 via-orange-100 to-orange-50 dark:from-orange-900/40 dark:via-orange-800/40 dark:to-orange-700/40 text-orange-900 dark:text-orange-100 border-2 border-orange-300 dark:border-orange-700 shadow-orange-200/50' :
                     'bg-gradient-to-r from-purple-100 via-pink-100 to-blue-100 dark:from-purple-800/40 dark:via-pink-800/40 dark:to-blue-800/40 text-purple-800 dark:text-purple-200 border-2 border-purple-200 dark:border-purple-700 shadow-purple-200/50'}`}
                 onClick={() => navigate(`/faculty-stats/${faculty.id}`)}
+                style={{ animationDelay: `${idx * 0.1}s` }}
               >
-                <div className="w-16 text-center text-lg font-bold">
+                {/* Mobile Layout - Stacked */}
+                <div className="sm:hidden w-full text-center mb-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 dark:from-purple-600 dark:to-pink-600 flex items-center justify-center font-bold text-white text-lg shadow-lg">
+                      {getInitials(faculty.name)}
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-200">
+                        {faculty.name}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {faculty.designation} - {faculty.department}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Desktop Layout - Horizontal */}
+                <div className="hidden sm:flex w-16 text-center text-lg font-bold">
                   <RankBadge rank={idx + 1} />
                 </div>
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 dark:from-purple-600 dark:to-pink-600 flex items-center justify-center font-bold text-white text-xl shadow-lg transform group-hover:scale-110 transition-transform duration-200">
+                <div className="hidden sm:block w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 dark:from-purple-600 dark:to-pink-600 flex items-center justify-center font-bold text-white text-xl shadow-lg transform group-hover:scale-110 transition-transform duration-200">
                   {getInitials(faculty.name)}
                 </div>
-                <div className="flex-1">
+                <div className="hidden sm:block flex-1">
                   <div className="text-lg font-semibold group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-200">
                     {faculty.name}
                   </div>
@@ -223,11 +283,32 @@ const TopPerformer = () => {
                     {faculty.designation} - {faculty.department}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                
+                {/* Mobile Rank Badge */}
+                <div className="sm:hidden mobile-rank-badge">
+                  <RankBadge rank={idx + 1} />
+                </div>
+                
+                {/* Score Display - Mobile Optimized */}
+                <div className="w-full sm:w-auto text-center sm:text-right">
+                  <div className="text-2xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {faculty.totalAchievements}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Total Achievements</div>
+                  
+                                     {/* Mobile Achievement Breakdown */}
+                   <div className="sm:hidden mt-2">
+                     <div className="mobile-achievement-breakdown">
+                       <div className="mobile-achievement-card">
+                         <div className="font-semibold text-purple-600">{faculty.rdproposalssangsation || 0}</div>
+                         <div className="text-gray-500">R&D</div>
+                       </div>
+                       <div className="mobile-achievement-card">
+                         <div className="font-semibold text-pink-600">{faculty.journalpublications || 0}</div>
+                         <div className="text-gray-500">Papers</div>
+                       </div>
+                     </div>
+                   </div>
                 </div>
               </div>
             ))}
