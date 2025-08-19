@@ -108,16 +108,33 @@ const FacultyTable = ({
 
   // Handle remove faculty - open delete dialog
   const handleRemoveFaculty = (faculty) => {
+    console.log('🔒 FacultyTable: Delete button clicked for faculty:', faculty.name);
+    console.log('🔒 FacultyTable: Current user isHeadOfDepartment:', isHeadOfDepartment);
+    
     if (!isHeadOfDepartment) {
+      console.log('❌ FacultyTable: Access denied - User is not HOD');
+      alert('Access denied. Only Head of Department can perform this action.');
       return;
     }
+    
+    console.log('✅ FacultyTable: Access granted - Opening delete dialog');
     setFacultyToDelete(faculty);
     setDeleteDialog(true);
   };
 
   // Handle complete faculty deletion
   const handleCompleteDelete = async () => {
+    console.log('🔒 FacultyTable: Complete delete requested for faculty:', facultyToDelete?.name);
+    console.log('🔒 FacultyTable: Current user isHeadOfDepartment:', isHeadOfDepartment);
+    
     if (!facultyToDelete) return;
+    
+    // Double-check HOD status before proceeding
+    if (!isHeadOfDepartment) {
+      console.log('❌ FacultyTable: Access denied - User is not HOD');
+      alert('Access denied. Only Head of Department can perform this action.');
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -145,7 +162,17 @@ const FacultyTable = ({
 
   // Handle reset faculty performance data
   const handleResetPerformance = async () => {
+    console.log('🔒 FacultyTable: Reset performance requested for faculty:', facultyToDelete?.name);
+    console.log('🔒 FacultyTable: Current user isHeadOfDepartment:', isHeadOfDepartment);
+    
     if (!facultyToDelete) return;
+    
+    // Double-check HOD status before proceeding
+    if (!isHeadOfDepartment) {
+      console.log('❌ FacultyTable: Access denied - User is not HOD');
+      alert('Access denied. Only Head of Department can perform this action.');
+      return;
+    }
 
     try {
       // Reset all performance metrics to zero/null
@@ -199,25 +226,39 @@ const FacultyTable = ({
         {/* Title and Add Faculty Button */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <CardTitle className="text-xl font-bold dark:text-white">Faculty Achievement Overview</CardTitle>
-          {onAddFaculty && isHeadOfDepartment && !isLoadingRole ? (
-            <Button 
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔍 Add Faculty button clicked');
-                onAddFaculty();
-              }} 
-              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 hover:from-green-600 hover:to-emerald-600 shadow-lg transform hover:scale-105 transition-all duration-200"
-            >
-              <Plus className="w-4 h-4" />
-              Add Faculty
-            </Button>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              {isLoadingRole ? 'Checking permissions...' : 'Add Faculty (Head of Department only)'}
+          <div className="flex items-center gap-4">
+            {/* Role Status Indicator */}
+            <div className={`px-3 py-2 rounded-lg text-sm font-medium ${
+              isLoadingRole 
+                ? 'bg-gray-100 text-gray-600' 
+                : isHeadOfDepartment 
+                  ? 'bg-green-100 text-green-700 border border-green-200' 
+                  : 'bg-orange-100 text-orange-700 border border-orange-200'
+            }`}>
+              {isLoadingRole ? '🔄 Checking Role...' : isHeadOfDepartment ? '✅ HOD Access' : '👤 Faculty Access'}
             </div>
-          )}
+            
+            {/* Add Faculty Button */}
+            {onAddFaculty && isHeadOfDepartment && !isLoadingRole ? (
+              <Button 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🔍 Add Faculty button clicked');
+                  onAddFaculty();
+                }} 
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 hover:from-green-600 hover:to-emerald-600 shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <Plus className="w-4 h-4" />
+                Add Faculty
+              </Button>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                {isLoadingRole ? 'Checking permissions...' : 'Add Faculty (Head of Department only)'}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4">
