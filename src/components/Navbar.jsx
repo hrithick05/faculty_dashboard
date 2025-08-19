@@ -20,6 +20,7 @@ import {
   Sun,
   Moon
 } from "lucide-react";
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -111,6 +112,9 @@ const Navbar = () => {
                 HOD Review
               </Button>
             )}
+
+            {/* Notification Bell */}
+            <NotificationBell />
 
             {/* Theme Toggle Button */}
             <Button
@@ -204,6 +208,18 @@ const Navbar = () => {
                 <span className="ml-3">HOD Review</span>
               </Button>
             )}
+
+            {/* Notification Bell */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start py-4 rounded-xl"
+              onClick={() => navigate('/notifications')}
+            >
+              <div className="p-2 rounded-lg bg-blue-50">
+                <Bell className="w-4 h-4" />
+              </div>
+              <span className="ml-3">Notifications</span>
+            </Button>
 
             {/* Theme Toggle Button */}
             <Button

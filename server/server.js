@@ -911,6 +911,33 @@ app.post('/api/achievements/review', async (req, res) => {
       }
     }
 
+    // Create notification for faculty member
+    try {
+      const notificationData = {
+        faculty_id: submissionData.faculty_id,
+        title: action === 'approve' ? 'Achievement Submission Approved! 🎉' : 'Achievement Submission Rejected',
+        message: action === 'approve' 
+          ? `Your submission "${submissionData.title}" has been approved by the HOD. Your achievement count has been increased by 1.`
+          : `Your submission "${submissionData.title}" has been rejected. Reason: ${reason || 'No reason provided'}`,
+        type: action === 'approve' ? 'success' : 'warning',
+        related_submission_id: submissionId
+      };
+
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert(notificationData);
+
+      if (notificationError) {
+        console.error('⚠️ Warning: Could not create notification:', notificationError);
+        // Don't throw error here as the main operation succeeded
+      } else {
+        console.log('✅ Notification created successfully for faculty member');
+      }
+    } catch (notificationError) {
+      console.error('⚠️ Warning: Error creating notification:', notificationError);
+      // Don't throw error here as the main operation succeeded
+    }
+
     res.json({ 
       success: true, 
       message: `Submission ${action}d successfully${action === 'approve' ? ' and faculty achievement count increased by 1' : ''}`,
@@ -918,6 +945,133 @@ app.post('/api/achievements/review', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Review error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Get notifications for a faculty member
+app.get('/api/notifications/:facultyId', async (req, res) => {
+  try {
+    const { facultyId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    
+    const offset = (page - 1) * limit;
+    
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('faculty_id', facultyId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+    
+    if (error) throw error;
+    
+    res.json({ 
+      success: true, 
+      data: notifications || [],
+      pagination: { page: parseInt(page), limit: parseInt(limit) }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching notifications:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Get unread notifications count for a faculty member
+app.get('/api/notifications/:facultyId/unread-count', async (req, res) => {
+  try {
+    const { facultyId } = req.params;
+    
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('faculty_id', facultyId)
+      .eq('is_read', false);
+    
+    if (error) throw error;
+    
+    res.json({ 
+      success: true, 
+      count: count || 0
+    });
+  } catch (error) {
+    console.error('❌ Error fetching unread count:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Mark notification as read
+app.put('/api/notifications/:notificationId/read', async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ 
+        is_read: true, 
+        read_at: new Date().toISOString() 
+      })
+      .eq('id', notificationId)
+      .select();
+    
+    if (error) throw error;
+    
+    res.json({ 
+      success: true, 
+      data: data[0]
+    });
+  } catch (error) {
+    console.error('❌ Error marking notification as read:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Mark all notifications as read for a faculty member
+app.put('/api/notifications/:facultyId/read-all', async (req, res) => {
+  try {
+    const { facultyId } = req.params;
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ 
+        is_read: true, 
+        read_at: new Date().toISOString() 
+      })
+      .eq('faculty_id', facultyId)
+      .eq('is_read', false)
+      .select();
+    
+    if (error) throw error;
+    
+    res.json({ 
+      success: true, 
+      message: `Marked ${data.length} notifications as read`,
+      count: data.length
+    });
+  } catch (error) {
+    console.error('❌ Error marking all notifications as read:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Delete notification
+app.delete('/api/notifications/:notificationId', async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+    
+    if (error) throw error;
+    
+    res.json({ 
+      success: true, 
+      message: 'Notification deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error deleting notification:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
