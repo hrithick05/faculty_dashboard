@@ -232,16 +232,21 @@ const FacultyTable = ({
         {/* Title and Add Faculty Button */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <CardTitle className="text-xl font-bold dark:text-white">Faculty Achievement Overview</CardTitle>
-          <div className="flex items-center gap-4">
-            {/* Role Status Indicator - ONLY SHOW FOR HODs */}
-            {isHeadOfDepartment === true && (
+          
+          {/* TEMPORARY DEBUG - Show current role status */}
+          <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-xs text-gray-700">
+            <strong>Current Status:</strong> isHeadOfDepartment = {String(isHeadOfDepartment)}, isLoadingRole = {String(isLoadingRole)}
+          </div>
+          
+          {/* Admin Elements - ONLY SHOW FOR HODs */}
+          {isHeadOfDepartment === true && (
+            <div className="flex items-center gap-4">
+              {/* Role Status Indicator */}
               <div className="px-3 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 border border-green-200">
                 ✅ HOD Access - Admin Features Enabled
               </div>
-            )}
-            
-            {/* Debug Info - ONLY SHOW FOR HODs */}
-            {isHeadOfDepartment === true && (
+              
+              {/* Debug Info */}
               <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
                 <strong>Debug:</strong> isHeadOfDepartment = {String(isHeadOfDepartment)}, isLoadingRole = {String(isLoadingRole)}
                 <br />
@@ -259,25 +264,25 @@ const FacultyTable = ({
                   Force Show Admin
                 </button>
               </div>
-            )}
-            
-            {/* Add Faculty Button - ONLY VISIBLE TO HODs */}
-            {onAddFaculty && isHeadOfDepartment === true && !isLoadingRole ? (
-              <Button 
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('🔍 Add Faculty button clicked');
-                  onAddFaculty();
-                }} 
-                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 hover:from-green-600 hover:to-emerald-600 shadow-lg transform hover:scale-105 transition-all duration-200"
-              >
-                <Plus className="w-4 h-4" />
-                Add Faculty
-              </Button>
-            ) : null}
-          </div>
+              
+              {/* Add Faculty Button */}
+              {onAddFaculty && !isLoadingRole && (
+                <Button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔍 Add Faculty button clicked');
+                    onAddFaculty();
+                  }} 
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 hover:from-green-600 hover:to-emerald-600 shadow-lg transform hover:scale-105 transition-all duration-200"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Faculty
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4">
