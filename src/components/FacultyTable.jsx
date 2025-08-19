@@ -244,8 +244,13 @@ const FacultyTable = ({
               {isLoadingRole ? '🔄 Checking Role...' : isHeadOfDepartment ? '✅ HOD Access - Admin Features Enabled' : '🚫 Faculty Access - Admin Features Hidden'}
             </div>
             
-            {/* Add Faculty Button */}
-            {onAddFaculty && isHeadOfDepartment && !isLoadingRole ? (
+            {/* Debug Info - Remove this after testing */}
+            <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
+              <strong>Debug:</strong> isHeadOfDepartment = {String(isHeadOfDepartment)}, isLoadingRole = {String(isLoadingRole)}
+            </div>
+            
+            {/* Add Faculty Button - ONLY VISIBLE TO HODs */}
+            {onAddFaculty && isHeadOfDepartment === true && !isLoadingRole ? (
               <Button 
                 type="button"
                 onClick={(e) => {
@@ -380,9 +385,10 @@ const FacultyTable = ({
                   >
                   <div>
                   <div className="font-semibold dark:text-white">{faculty.name}</div>
-                  {isHeadOfDepartment && (
-                  <div className="text-sm text-muted-foreground dark:text-white">{faculty.id}</div>
-                  )}
+                  {/* FACULTY ID - ONLY VISIBLE TO HODs */}
+                  {isHeadOfDepartment === true ? (
+                    <div className="text-sm text-muted-foreground dark:text-white">{faculty.id}</div>
+                  ) : null}
                   </div>
                   </TableCell>
                   <TableCell className="dark:text-white min-w-[150px]">
@@ -422,7 +428,8 @@ const FacultyTable = ({
                       >
                         <BarChart3 className="w-4 h-4" />
                       </Button>
-                      {isHeadOfDepartment && faculty.id !== 'TARGET' && (
+                      {/* DELETE BUTTON - ONLY VISIBLE TO HODs */}
+                      {isHeadOfDepartment === true && faculty.id !== 'TARGET' ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -432,7 +439,7 @@ const FacultyTable = ({
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -456,9 +463,10 @@ const FacultyTable = ({
                       </div>
                       <div>
                         <h3 className="font-bold text-lg text-gray-900">{faculty.name}</h3>
-                        {isHeadOfDepartment && (
+                        {/* FACULTY ID - ONLY VISIBLE TO HODs */}
+                        {isHeadOfDepartment === true ? (
                           <p className="text-xs text-gray-500 font-mono">{faculty.id}</p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -480,7 +488,8 @@ const FacultyTable = ({
                     >
                       <BarChart3 className="w-5 h-5" />
                     </Button>
-                    {isHeadOfDepartment && faculty.id !== 'TARGET' && (
+                    {/* DELETE BUTTON - ONLY VISIBLE TO HODs */}
+                    {isHeadOfDepartment === true && faculty.id !== 'TARGET' ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -490,7 +499,7 @@ const FacultyTable = ({
                       >
                         <Trash2 className="w-5 h-5" />
                       </Button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
