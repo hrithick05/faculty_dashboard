@@ -691,19 +691,6 @@ const HODReviewPanel = () => {
               Delete All Records
             </Button>
           )}
-          
-          {/* Delete All Records Button */}
-          {submissions.length > 0 && (
-            <Button 
-              onClick={() => openDeleteAllDialog()}
-              disabled={refreshing}
-              variant="destructive"
-              className="bg-red-700 hover:bg-red-800 border-2 border-red-600"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete All Records
-            </Button>
-          )}
         </div>
       </div>
 
