@@ -1019,8 +1019,7 @@ app.delete('/api/achievements/delete-all-submissions', async (req, res) => {
     // Delete all submissions
     const { error: deleteError } = await supabase
       .from('achievement_submissions')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (this condition is always true)
+      .delete();
 
     if (deleteError) {
       console.error('❌ Error deleting all submissions:', deleteError);
