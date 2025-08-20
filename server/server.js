@@ -51,8 +51,7 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
-// Handle CORS preflight requests
-app.options('*', cors());
+// Handle CORS preflight requests - removed to fix path-to-regexp error
 
 // Additional CORS headers middleware
 app.use((req, res, next) => {
