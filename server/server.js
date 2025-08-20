@@ -1887,15 +1887,14 @@ app.post('/api/faculty/delete-details', async (req, res) => {
 
 // Start server
 app.listen(PORT, async () => {
-  console.log('🚀 ==========================================');
-  console.log('🚀 ACHIEVEMENT SYSTEM BACKEND STARTING...');
-  console.log('🚀 ==========================================');
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔗 Code version test: http://localhost:${PORT}/api/test-code-version`);
-  console.log('🚀 CODE VERSION: USING CORRECT COLUMN NAMES');
-  console.log('🚀 Columns: approved_at, approved_by, rejected_at, rejected_by');
-  console.log('🚀 ==========================================');
+  console.log('Server starting...');
+  console.log('Achievement System Backend Starting...');
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`Code version test: http://localhost:${PORT}/api/test-code-version`);
+  console.log('CODE VERSION: USING CORRECT COLUMN NAMES');
+  console.log('Columns: approved_at, approved_by, rejected_at, rejected_by');
+  console.log('Server started successfully');
   
   // Initialize achievement system on startup
   await initializeAchievementSystem();
