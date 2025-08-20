@@ -1016,10 +1016,11 @@ app.delete('/api/achievements/delete-all-submissions', async (req, res) => {
       throw new Error(`Failed to fetch submissions: ${fetchError.message}`);
     }
 
-    // Delete all submissions
+    // Delete all submissions - need WHERE clause for Supabase
     const { error: deleteError } = await supabase
       .from('achievement_submissions')
-      .delete();
+      .delete()
+      .gte('id', 0); // This will match all records since IDs are positive integers
 
     if (deleteError) {
       console.error('❌ Error deleting all submissions:', deleteError);
