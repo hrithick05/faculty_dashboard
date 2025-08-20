@@ -13,14 +13,14 @@ import {
   X, 
   User, 
   LogOut,
-  Bell,
   Filter,
   Edit3,
   Award,
   Sun,
-  Moon
+  Moon,
+  RefreshCw
 } from "lucide-react";
-import NotificationBell from './NotificationBell';
+
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -29,6 +29,9 @@ const Navbar = () => {
   const [isChangeFacultyIdOpen, setIsChangeFacultyIdOpen] = useState(false);
   const [newFacultyId, setNewFacultyId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isRefreshingCount, setIsRefreshingCount] = useState(false);
+  const [hasNewSubmissions, setHasNewSubmissions] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -39,6 +42,82 @@ const Navbar = () => {
       setLoggedInFaculty(faculty);
     }
   }, []);
+
+  // Fetch pending submissions count
+  const fetchPendingCount = async () => {
+    if (loggedInFaculty?.designation !== 'Head of Department') return;
+    
+    try {
+      setIsRefreshingCount(true);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/achievements/pending-count`);
+      if (response.ok) {
+        const data = await response.json();
+        const previousCount = pendingCount;
+        setPendingCount(data.count || 0);
+        
+        // Show toast notification if count changed
+        if (data.count !== previousCount) {
+          if (data.count > previousCount) {
+            setHasNewSubmissions(true);
+            toast({
+              title: "New submissions detected!",
+              description: `${data.count - previousCount} new PDF(s) awaiting your review.`,
+            });
+            // Remove new submissions indicator after 5 seconds
+            setTimeout(() => setHasNewSubmissions(false), 5000);
+          } else if (data.count < previousCount) {
+            setHasNewSubmissions(false);
+            toast({
+              title: "Submissions updated",
+              description: `Pending count updated: ${data.count} submission(s) remaining.`,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching pending count:', error);
+      toast({
+        title: "Error refreshing count",
+        description: "Failed to fetch pending submissions count.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshingCount(false);
+    }
+  };
+
+  // Fetch count on mount and set up interval
+  useEffect(() => {
+    if (loggedInFaculty?.designation === 'Head of Department') {
+      fetchPendingCount();
+      
+      // Refresh count every 30 seconds
+      const interval = setInterval(fetchPendingCount, 30000);
+      
+      // Refresh count when user returns to the tab
+      const handleFocus = () => fetchPendingCount();
+      window.addEventListener('focus', handleFocus);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('focus', handleFocus);
+      };
+    }
+  }, [loggedInFaculty?.designation]);
+
+  // Refresh count when navigating back to the navbar
+  useEffect(() => {
+    const handlePopState = () => {
+      if (loggedInFaculty?.designation === 'Head of Department') {
+        // Small delay to ensure the page has loaded
+        setTimeout(fetchPendingCount, 100);
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [loggedInFaculty?.designation]);
 
   const handleLogout = () => {
     localStorage.removeItem('loggedInFaculty');
@@ -102,19 +181,51 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             {/* HOD Review Button - Only show for HODs */}
             {loggedInFaculty?.designation === 'Head of Department' && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate('/hod-review')}
-                className="bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300"
-              >
-                <Award className="w-4 h-4 mr-2" />
-                HOD Review
-              </Button>
+              <div className="relative group">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    fetchPendingCount(); // Refresh count before navigating
+                    navigate('/hod-review');
+                  }}
+                  className="bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300"
+                >
+                  <Award className="w-4 h-4 mr-2" />
+                  HOD Review
+                  {pendingCount > 0 && (
+                    <span 
+                      className={`ml-2 px-2 py-1 text-white text-xs rounded-full ${
+                        hasNewSubmissions 
+                          ? 'bg-red-600 animate-pulse' 
+                          : pendingCount > 5 
+                            ? 'bg-orange-500' 
+                            : 'bg-red-500'
+                      }`}
+                      aria-label={`${pendingCount} pending submission${pendingCount > 1 ? 's' : ''} awaiting review`}
+                    >
+                      {pendingCount}
+                    </span>
+                  )}
+                </Button>
+                {/* Refresh button that appears on hover */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fetchPendingCount();
+                  }}
+                  className="absolute -top-1 -right-1 w-6 h-6 p-0 bg-blue-500 hover:bg-blue-600 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  title="Refresh pending count"
+                  disabled={isRefreshingCount}
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRefreshingCount ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             )}
 
-            {/* Notification Bell */}
-            <NotificationBell />
+
 
             {/* Theme Toggle Button */}
             <Button
@@ -197,29 +308,49 @@ const Navbar = () => {
           <div className="px-4 py-6 space-y-4">
             {/* HOD Review Button - Only show for HODs */}
             {loggedInFaculty?.designation === 'Head of Department' && (
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start py-4 rounded-xl"
-                onClick={() => navigate('/hod-review')}
-              >
-                <div className="p-2 rounded-lg bg-orange-50">
-                  <Award className="w-4 h-4" />
-                </div>
-                <span className="ml-3">HOD Review</span>
-              </Button>
+              <div className="flex items-center justify-between w-full">
+                <Button 
+                  variant="ghost" 
+                  className="flex-1 justify-start py-4 rounded-xl"
+                  onClick={() => {
+                    fetchPendingCount(); // Refresh count before navigating
+                    navigate('/hod-review');
+                  }}
+                >
+                  <div className="p-2 rounded-lg bg-orange-50">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <span className="ml-3">HOD Review</span>
+                  {pendingCount > 0 && (
+                    <span 
+                      className={`ml-2 px-2 py-1 text-white text-xs rounded-full ${
+                        hasNewSubmissions 
+                          ? 'bg-red-600 animate-pulse' 
+                          : pendingCount > 5 
+                            ? 'bg-orange-500' 
+                            : 'bg-red-500'
+                      }`}
+                      aria-label={`${pendingCount} pending submission${pendingCount > 1 ? 's' : ''} awaiting review`}
+                    >
+                      {pendingCount}
+                    </span>
+                  )}
+                </Button>
+                {/* Mobile refresh button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchPendingCount}
+                  className="ml-2 p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                  title="Refresh pending count"
+                  disabled={isRefreshingCount}
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshingCount ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             )}
 
-            {/* Notification Bell */}
-            <Button
-              variant="ghost"
-              className="w-full justify-start py-4 rounded-xl"
-              onClick={() => navigate('/notifications')}
-            >
-              <div className="p-2 rounded-lg bg-blue-50">
-                <Bell className="w-4 h-4" />
-              </div>
-              <span className="ml-3">Notifications</span>
-            </Button>
+
 
             {/* Theme Toggle Button */}
             <Button

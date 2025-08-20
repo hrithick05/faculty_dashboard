@@ -15,7 +15,7 @@ import LoginForm from "./components/LoginForm";
 import TopPerformer from "./TopPerformer/TopPerformer";
 import FacultyStats from "./TopPerformer/FacultyStats";
 import HODReviewPanel from "./components/HODReviewPanel";
-import Notifications from "./pages/Notifications";
+
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
@@ -251,14 +251,7 @@ const AppContent = () => {
                     </HeadOfDepartmentRoute>
                   }
                 />
-                <Route
-                  path="/notifications"
-                  element={
-                    <ProtectedRoute>
-                      <Notifications />
-                    </ProtectedRoute>
-                  }
-                />
+
                 <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </LayoutWrapper>

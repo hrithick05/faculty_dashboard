@@ -1,0 +1,80 @@
+[1mdiff --git a/src/components/FacultyDetailView.jsx b/src/components/FacultyDetailView.jsx[m
+[1mindex f1b342b..40da75b 100644[m
+[1m--- a/src/components/FacultyDetailView.jsx[m
+[1m+++ b/src/components/FacultyDetailView.jsx[m
+[36m@@ -390,19 +390,7 @@[m [mconst FacultyDetailView = () => {[m
+                 </div>[m
+                 <div className="mt-2">[m
+                   <Label className="text-sm font-medium text-white/90">Designation:</Label>{' '}[m
+[31m-                  {isEditing ? ([m
+[31m-                    <select[m
+[31m-                      value={editedFaculty.designation || faculty.designation}[m
+[31m-                      onChange={e => updateField('designation', e.target.value)}[m
+[31m-                      className="ml-2 px-2 py-1 rounded border bg-white/20 text-white border-white/30"[m
+[31m-                    >[m
+[31m-                      <option value="Head of Department">Head of Department</option>[m
+[31m-                      <option value="Associate Professor">Associate Professor</option>[m
+[31m-                      <option value="Assistant Professor">Assistant Professor</option>[m
+[31m-                    </select>[m
+[31m-                  ) : ([m
+[31m-                    <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">{faculty.designation}</Badge>[m
+[31m-                  )}[m
+[32m+[m[32m                  <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">{faculty.designation}</Badge>[m
+                 </div>[m
+               </div>[m
+             </div>[m
+[36m@@ -528,23 +516,9 @@[m [mconst FacultyDetailView = () => {[m
+                       <div key={item.key} className="space-y-3">[m
+                         <div className="flex justify-between items-center">[m
+                           <Label className="text-sm font-medium text-purple-700 dark:text-purple-300">{item.label}</Label>[m
+[31m-                          {isEditing ? ([m
+[31m-                            <Input[m
+[31m-                              type="number"[m
+[31m-                              min="0"[m
+[31m-                              value={editedFaculty[item.key] || 0}[m
+[31m-                              onChange={(e) => updateField(item.key, parseInt(e.target.value) || 0)}[m
+[31m-                              className={`w-20 text-right border-2 focus:border-purple-500 ${[m
+[31m-                                editedFaculty[item.key] !== faculty[item.key] [m
+[31m-                                  ? 'border-green-500 bg-green-50' [m
+[31m-                                  : 'border-purple-200'[m
+[31m-                              }`}[m
+[31m-                            />[m
+[31m-                          ) : ([m
+[31m-                            <Badge variant="secondary" className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white">[m
+[31m-                              {item.value}[m
+[31m-                            </Badge>[m
+[31m-                          )}[m
+[32m+[m[32m                          <Badge variant="secondary" className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white">[m
+[32m+[m[32m                            {item.value}[m
+[32m+[m[32m                          </Badge>[m
+                         </div>[m
+                         [m
+                         {/* PDF Upload Section - Only show when editing */}[m
+[1mdiff --git a/src/components/NotificationBell.jsx b/src/components/NotificationBell.jsx[m
+[1mindex 4364c05..a94d40a 100644[m
+[1m--- a/src/components/NotificationBell.jsx[m
+[1m+++ b/src/components/NotificationBell.jsx[m
+[36m@@ -14,7 +14,8 @@[m [mconst NotificationBell = () => {[m
+   const [loading, setLoading] = useState(false);[m
+   const { toast } = useToast();[m
+ [m
+[31m-  const currentUser = getCookie('currentUser') ? JSON.parse(getCookie('currentUser')) : null;[m
+[32m+[m[32m  const currentUser = getCookie('loggedInFaculty') ? JSON.parse(getCookie('loggedInFaculty')) :[m[41m [m
+[32m+[m[32m                     localStorage.getItem('loggedInFaculty') ? JSON.parse(localStorage.getItem('loggedInFaculty')) : null;[m
+   const facultyId = currentUser?.id;[m
+ [m
+   // Fetch unread count[m
+[1mdiff --git a/src/pages/Notifications.jsx b/src/pages/Notifications.jsx[m
+[1mindex 8b5fade..c544030 100644[m
+[1m--- a/src/pages/Notifications.jsx[m
+[1m+++ b/src/pages/Notifications.jsx[m
+[36m@@ -21,7 +21,8 @@[m [mconst Notifications = () => {[m
+   const { toast } = useToast();[m
+   const navigate = useNavigate();[m
+ [m
+[31m-  const currentUser = getCookie('currentUser') ? JSON.parse(getCookie('currentUser')) : null;[m
+[32m+[m[32m  const currentUser = getCookie('loggedInFaculty') ? JSON.parse(getCookie('loggedInFaculty')) :[m[41m [m
+[32m+[m[32m                     localStorage.getItem('loggedInFaculty') ? JSON.parse(localStorage.getItem('loggedInFaculty')) : null;[m
+   const facultyId = currentUser?.id;[m
+ [m
+   // Fetch notifications[m

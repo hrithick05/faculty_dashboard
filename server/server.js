@@ -334,6 +334,8 @@ app.post('/api/achievements/submit', upload.single('pdf'), async (req, res) => {
     
     console.log('✅ Submission verified successfully:', verifyData);
 
+
+
     res.json({ 
       success: true, 
       message: 'PDF uploaded and submission created successfully',
@@ -747,6 +749,9 @@ app.get('/api/achievements/pending-count', async (req, res) => {
       .eq('status', 'pending');
     
     if (error) throw error;
+    
+
+    
     res.json({ success: true, count: count || 0 });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -911,32 +916,7 @@ app.post('/api/achievements/review', async (req, res) => {
       }
     }
 
-    // Create notification for faculty member
-    try {
-      const notificationData = {
-        faculty_id: submissionData.faculty_id,
-        title: action === 'approve' ? 'Achievement Submission Approved! 🎉' : 'Achievement Submission Rejected',
-        message: action === 'approve' 
-          ? `Your submission "${submissionData.title}" has been approved by the HOD. Your achievement count has been increased by 1.`
-          : `Your submission "${submissionData.title}" has been rejected. Reason: ${reason || 'No reason provided'}`,
-        type: action === 'approve' ? 'success' : 'warning',
-        related_submission_id: submissionId
-      };
 
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert(notificationData);
-
-      if (notificationError) {
-        console.error('⚠️ Warning: Could not create notification:', notificationError);
-        // Don't throw error here as the main operation succeeded
-      } else {
-        console.log('✅ Notification created successfully for faculty member');
-      }
-    } catch (notificationError) {
-      console.error('⚠️ Warning: Error creating notification:', notificationError);
-      // Don't throw error here as the main operation succeeded
-    }
 
     res.json({ 
       success: true, 
@@ -949,132 +929,128 @@ app.post('/api/achievements/review', async (req, res) => {
   }
 });
 
-// Get notifications for a faculty member
-app.get('/api/notifications/:facultyId', async (req, res) => {
+// Delete submission endpoint
+app.delete('/api/achievements/delete-submission', async (req, res) => {
   try {
-    const { facultyId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+    console.log('🗑️ Delete submission request received:', req.body);
     
-    const offset = (page - 1) * limit;
+    const { submissionId } = req.body;
     
-    const { data: notifications, error } = await supabase
-      .from('notifications')
+    if (!submissionId) {
+      throw new Error('Submission ID is required');
+    }
+
+    // Get the submission details first
+    const { data: submissionData, error: fetchError } = await supabase
+      .from('achievement_submissions')
       .select('*')
-      .eq('faculty_id', facultyId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-    
-    if (error) throw error;
-    
-    res.json({ 
-      success: true, 
-      data: notifications || [],
-      pagination: { page: parseInt(page), limit: parseInt(limit) }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching notifications:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+      .eq('id', submissionId)
+      .single();
 
-// Get unread notifications count for a faculty member
-app.get('/api/notifications/:facultyId/unread-count', async (req, res) => {
-  try {
-    const { facultyId } = req.params;
-    
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('faculty_id', facultyId)
-      .eq('is_read', false);
-    
-    if (error) throw error;
-    
-    res.json({ 
-      success: true, 
-      count: count || 0
-    });
-  } catch (error) {
-    console.error('❌ Error fetching unread count:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+    if (fetchError) {
+      console.error('❌ Error fetching submission:', fetchError);
+      throw new Error(`Failed to fetch submission: ${fetchError.message}`);
+    }
 
-// Mark notification as read
-app.put('/api/notifications/:notificationId/read', async (req, res) => {
-  try {
-    const { notificationId } = req.params;
-    
-    const { data, error } = await supabase
-      .from('notifications')
-      .update({ 
-        is_read: true, 
-        read_at: new Date().toISOString() 
-      })
-      .eq('id', notificationId)
-      .select();
-    
-    if (error) throw error;
-    
-    res.json({ 
-      success: true, 
-      data: data[0]
-    });
-  } catch (error) {
-    console.error('❌ Error marking notification as read:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+    if (!submissionData) {
+      throw new Error('Submission not found');
+    }
 
-// Mark all notifications as read for a faculty member
-app.put('/api/notifications/:facultyId/read-all', async (req, res) => {
-  try {
-    const { facultyId } = req.params;
-    
-    const { data, error } = await supabase
-      .from('notifications')
-      .update({ 
-        is_read: true, 
-        read_at: new Date().toISOString() 
-      })
-      .eq('faculty_id', facultyId)
-      .eq('is_read', false)
-      .select();
-    
-    if (error) throw error;
-    
-    res.json({ 
-      success: true, 
-      message: `Marked ${data.length} notifications as read`,
-      count: data.length
-    });
-  } catch (error) {
-    console.error('❌ Error marking all notifications as read:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
+    console.log('📋 Submission to delete:', submissionData);
 
-// Delete notification
-app.delete('/api/notifications/:notificationId', async (req, res) => {
-  try {
-    const { notificationId } = req.params;
-    
-    const { error } = await supabase
-      .from('notifications')
+    // Delete the submission
+    const { error: deleteError } = await supabase
+      .from('achievement_submissions')
       .delete()
-      .eq('id', notificationId);
-    
-    if (error) throw error;
-    
+      .eq('id', submissionId);
+
+    if (deleteError) {
+      console.error('❌ Error deleting submission:', deleteError);
+      throw new Error(`Failed to delete submission: ${deleteError.message}`);
+    }
+
+    console.log('✅ Submission deleted successfully');
+
     res.json({ 
       success: true, 
-      message: 'Notification deleted successfully'
+      message: 'Submission deleted successfully',
+      deletedSubmission: submissionData
     });
   } catch (error) {
-    console.error('❌ Error deleting notification:', error);
+    console.error('❌ Delete submission error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// Delete all submissions endpoint
+app.delete('/api/achievements/delete-all-submissions', async (req, res) => {
+  try {
+    console.log('🗑️ Delete all submissions request received');
+    
+    // Get count of all submissions first
+    const { count, error: countError } = await supabase
+      .from('achievement_submissions')
+      .select('*', { count: 'exact', head: true });
+    
+    if (countError) {
+      console.error('❌ Error counting submissions:', countError);
+      throw new Error(`Failed to count submissions: ${countError.message}`);
+    }
+
+    if (count === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'No submissions found to delete',
+        deletedCount: 0
+      });
+    }
+
+    console.log(`📋 Found ${count} submissions to delete`);
+
+    // Get all submissions for logging purposes
+    const { data: allSubmissions, error: fetchError } = await supabase
+      .from('achievement_submissions')
+      .select('*');
+
+    if (fetchError) {
+      console.error('❌ Error fetching submissions:', fetchError);
+      throw new Error(`Failed to fetch submissions: ${fetchError.message}`);
+    }
+
+    // Delete all submissions
+    const { error: deleteError } = await supabase
+      .from('achievement_submissions')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (this condition is always true)
+
+    if (deleteError) {
+      console.error('❌ Error deleting all submissions:', deleteError);
+      throw new Error(`Failed to delete all submissions: ${deleteError.message}`);
+    }
+
+    console.log(`✅ Successfully deleted ${count} submissions`);
+
+    res.json({ 
+      success: true, 
+      message: `Successfully deleted all ${count} submissions`,
+      deletedCount: count,
+      deletedSubmissions: allSubmissions
+    });
+  } catch (error) {
+    console.error('❌ Delete all submissions error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
 
 // Comprehensive health check endpoint
 app.get('/api/health/comprehensive', async (req, res) => {

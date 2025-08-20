@@ -42,6 +42,13 @@ const HODReviewPanel = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [facultyToDelete, setFacultyToDelete] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [clearSubmissionDialog, setClearSubmissionDialog] = useState(false);
+  const [submissionToClear, setSubmissionToClear] = useState(null);
+  const [clearConfirmation, setClearConfirmation] = useState('');
+  const [deleteAllDialog, setDeleteAllDialog] = useState(false);
+  const [deleteAllConfirmation, setDeleteAllConfirmation] = useState('');
+  const [hideOldRecords, setHideOldRecords] = useState(false);
+  const [cutoffTimestamp, setCutoffTimestamp] = useState(null);
   const { toast } = useToast();
 
   // Get current user info with better error handling
@@ -352,9 +359,18 @@ const HODReviewPanel = () => {
     }
   };
 
-  // Filter submissions based on search and status
+  // Filter submissions based on search, status, and hideOldRecords
   useEffect(() => {
     let filtered = submissions;
+    
+    // Filter by hideOldRecords first (only show records after cutoff timestamp)
+    if (hideOldRecords && cutoffTimestamp) {
+      filtered = filtered.filter(submission => {
+        const submissionDate = new Date(submission.submitted_at);
+        const cutoffDate = new Date(cutoffTimestamp);
+        return submissionDate >= cutoffDate;
+      });
+    }
     
     if (searchTerm) {
       filtered = filtered.filter(submission =>
@@ -370,7 +386,7 @@ const HODReviewPanel = () => {
     }
     
     setFilteredSubmissions(filtered);
-  }, [submissions, searchTerm, statusFilter]);
+  }, [submissions, searchTerm, statusFilter, hideOldRecords, cutoffTimestamp]);
 
   // Handle approval/rejection
   const handleReview = async (submissionId, action, reason) => {
@@ -444,6 +460,42 @@ const HODReviewPanel = () => {
     setDeleteDialog(true);
   };
 
+  // Open clear submission dialog
+  const openClearSubmissionDialog = (submission) => {
+    setSubmissionToClear(submission);
+    setClearSubmissionDialog(true);
+    setClearConfirmation('');
+  };
+
+  // Open delete all records dialog
+  const openDeleteAllDialog = () => {
+    setDeleteAllDialog(true);
+    setDeleteAllConfirmation('');
+  };
+
+  // Handle hide old records - only show new records after this point
+  const handleHideOldRecords = () => {
+    const now = new Date().toISOString();
+    setCutoffTimestamp(now);
+    setHideOldRecords(true);
+    
+    toast({
+      title: "View Cleared",
+      description: "Now showing only new submissions. Previously submitted records are hidden from view.",
+    });
+  };
+
+  // Reset view to show all records
+  const handleShowAllRecords = () => {
+    setHideOldRecords(false);
+    setCutoffTimestamp(null);
+    
+    toast({
+      title: "View Reset",
+      description: "Now showing all submissions including previously hidden records.",
+    });
+  };
+
   // Handle faculty deletion
   const handleDeleteFaculty = async () => {
     if (deleteConfirmation !== facultyToDelete?.faculty_name) {
@@ -492,6 +544,122 @@ const HODReviewPanel = () => {
       toast({
         title: "Deletion Failed",
         description: error.message || "Could not delete faculty. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle clear submission
+  const handleClearSubmission = async () => {
+    if (clearConfirmation !== 'CLEAR_SUBMISSION') {
+      toast({
+        title: "Confirmation Mismatch",
+        description: "Please type 'CLEAR_SUBMISSION' exactly to confirm deletion.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/achievements/delete-submission`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId: submissionToClear.id
+        })
+      });
+
+      if (!response.ok) {
+        // Check if response is JSON or HTML
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to delete submission (${response.status})`);
+        } else {
+          // Handle HTML responses (like 404 pages)
+          throw new Error(`API endpoint not found (${response.status}). The backend may need to be redeployed.`);
+        }
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Submission Cleared Successfully",
+        description: result.message || "The submission has been permanently removed from the system.",
+      });
+
+      // Refresh submissions to reflect the deletion
+      await fetchSubmissions(true);
+      
+      // Close dialog
+      setClearSubmissionDialog(false);
+      setSubmissionToClear(null);
+      setClearConfirmation('');
+      
+    } catch (error) {
+      console.error('❌ Clear submission error:', error);
+      toast({
+        title: "Clear Failed",
+        description: error.message || "Could not clear submission. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle delete all records
+  const handleDeleteAllRecords = async () => {
+    if (deleteAllConfirmation !== 'DELETE_ALL_RECORDS') {
+      toast({
+        title: "Confirmation Mismatch",
+        description: "Please type 'DELETE_ALL_RECORDS' exactly to confirm deletion of all records.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/achievements/delete-all-submissions`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        // Check if response is JSON or HTML
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to delete all records (${response.status})`);
+        } else {
+          // Handle HTML responses (like 404 pages)
+          throw new Error(`API endpoint not found (${response.status}). The backend may need to be redeployed.`);
+        }
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "All Records Deleted Successfully",
+        description: result.message || "All achievement submissions have been permanently removed from the system.",
+      });
+
+      // Refresh submissions to reflect the deletion
+      await fetchSubmissions(true);
+      
+      // Close dialog
+      setDeleteAllDialog(false);
+      setDeleteAllConfirmation('');
+      
+    } catch (error) {
+      console.error('❌ Delete all records error:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Could not delete all records. Please try again.",
         variant: "destructive"
       });
     }
@@ -631,6 +799,17 @@ const HODReviewPanel = () => {
                 </span>
               </div>
             )}
+            {hideOldRecords && (
+              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <span className="text-yellow-800 font-medium">
+                  👁️ Clear View Active - Showing only new records after {formatDateIST(cutoffTimestamp)}
+                </span>
+                <div className="text-yellow-700 text-xs mt-1">
+                  Hidden: {submissions.length - filteredSubmissions.length} older records • 
+                  Visible: {filteredSubmissions.length} new records
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -672,6 +851,42 @@ const HODReviewPanel = () => {
             <RefreshCw className="w-4 h-4 mr-2" />
             Clear & Refresh
           </Button>
+          
+          {/* Clear View Button - Hide old records and show only new ones */}
+          {!hideOldRecords ? (
+            <Button 
+              onClick={handleHideOldRecords}
+              disabled={refreshing}
+              variant="outline"
+              className="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-300"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Clear View
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleShowAllRecords}
+              disabled={refreshing}
+              variant="outline"
+              className="bg-green-50 hover:bg-green-100 text-green-700 border border-green-300"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Show All ({submissions.length})
+            </Button>
+          )}
+          
+          {/* Delete All Records Button */}
+          {submissions.length > 0 && (
+            <Button 
+              onClick={() => openDeleteAllDialog()}
+              disabled={refreshing}
+              variant="destructive"
+              className="bg-red-700 hover:bg-red-800 border-2 border-red-600"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete All Records
+            </Button>
+          )}
         </div>
       </div>
 
@@ -725,6 +940,34 @@ const HODReviewPanel = () => {
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Check Again
                   </Button>
+                </div>
+              ) : hideOldRecords ? (
+                <div className="py-12">
+                  <Eye className="w-16 h-16 text-yellow-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No New Submissions</h3>
+                  <p className="text-gray-600">
+                    No new submissions have been received after {formatDateIST(cutoffTimestamp)}.
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    {submissions.length} older record(s) are hidden. Click "Show All" to view them.
+                  </p>
+                  <div className="flex gap-2 mt-4 justify-center">
+                    <Button 
+                      onClick={() => fetchSubmissions(true)} 
+                      variant="outline"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Check for New
+                    </Button>
+                    <Button 
+                      onClick={handleShowAllRecords}
+                      variant="outline"
+                      className="bg-green-50 hover:bg-green-100 text-green-700"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Show All Records
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="py-12">
@@ -859,6 +1102,17 @@ const HODReviewPanel = () => {
                         </div>
                       )}
                       
+                      {/* Clear/Delete Submission Button - For HODs to remove unwanted submissions */}
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => openClearSubmissionDialog(submission)}
+                        className="mt-2 bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Clear Submission
+                      </Button>
+                      
                       {/* Reset Faculty Performance Data Button - Visible to all users for testing */}
                       <Button
                         size="sm"
@@ -880,12 +1134,17 @@ const HODReviewPanel = () => {
 
       {/* Review Dialog */}
       <Dialog open={reviewDialog} onOpenChange={setReviewDialog}>
-        <DialogContent>
+        <DialogContent aria-describedby="review-dialog-description">
           <DialogHeader>
             <DialogTitle>
               {reviewAction === 'approve' ? 'Approve' : 'Reject'} Submission
             </DialogTitle>
           </DialogHeader>
+          
+          <div id="review-dialog-description" className="sr-only">
+            Dialog for {reviewAction === 'approve' ? 'approving' : 'rejecting'} a faculty achievement submission. 
+            Review submission details and provide optional reason before proceeding.
+          </div>
           
           <div className="space-y-4">
             <div>
@@ -941,10 +1200,15 @@ const HODReviewPanel = () => {
 
       {/* Delete Faculty Details Dialog */}
       <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
-        <DialogContent>
-                  <DialogHeader>
-          <DialogTitle className="text-red-600">Reset Faculty Performance Data</DialogTitle>
-        </DialogHeader>
+        <DialogContent aria-describedby="delete-faculty-dialog-description">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Reset Faculty Performance Data</DialogTitle>
+          </DialogHeader>
+          
+          <div id="delete-faculty-dialog-description" className="sr-only">
+            Warning dialog for resetting faculty performance data. This action will permanently delete all faculty details 
+            including achievement submissions, performance metrics, and review history. Cannot be undone.
+          </div>
           
           <div className="space-y-4">
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
@@ -1015,6 +1279,187 @@ const HODReviewPanel = () => {
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Faculty Details
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear Submission Dialog */}
+      <Dialog open={clearSubmissionDialog} onOpenChange={setClearSubmissionDialog}>
+        <DialogContent aria-describedby="clear-submission-dialog-description">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Clear Submission</DialogTitle>
+          </DialogHeader>
+          
+          <div id="clear-submission-dialog-description" className="sr-only">
+            Warning dialog for clearing a single achievement submission. This action will permanently delete the selected 
+            submission including all associated data and files. Cannot be undone.
+          </div>
+          
+          <div className="space-y-4">
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <h4 className="font-medium text-red-800 mb-2">⚠️ Warning: This action cannot be undone!</h4>
+              <p className="text-red-700 text-sm">
+                This will permanently delete the submission:
+              </p>
+              <ul className="text-red-700 text-sm mt-2 list-disc list-inside">
+                <li>Submission title: <strong>{submissionToClear?.title}</strong></li>
+                <li>Faculty: <strong>{submissionToClear?.faculty_name}</strong></li>
+                <li>Category: <strong>{submissionToClear?.category}</strong></li>
+                <li>Status: <strong>{submissionToClear?.status}</strong></li>
+                <li>All associated data and files</li>
+              </ul>
+              <p className="text-red-700 text-sm mt-2 font-medium">
+                <strong>⚠️ WARNING: This submission will be permanently removed!</strong>
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <h4 className="font-medium mb-2">Submission Details:</h4>
+              <div className="text-sm">
+                <p><strong>Title:</strong> {submissionToClear?.title}</p>
+                <p><strong>Faculty:</strong> {submissionToClear?.faculty_name}</p>
+                <p><strong>Department:</strong> {submissionToClear?.department}</p>
+                <p><strong>Category:</strong> {submissionToClear?.category}</p>
+                <p><strong>Submitted:</strong> {submissionToClear?.submitted_at ? formatDateIST(submissionToClear.submitted_at) : 'N/A'}</p>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <h4 className="font-medium mb-2 text-blue-800">HOD Performing Action:</h4>
+              <div className="text-sm text-blue-700">
+                <p><strong>Name:</strong> {getCurrentUser()?.name}</p>
+                <p><strong>ID:</strong> {getCurrentUser()?.id}</p>
+                <p><strong>Designation:</strong> {getCurrentUser()?.designation}</p>
+                <p><strong>Department:</strong> {getCurrentUser()?.department}</p>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2 text-red-600">
+                Type exactly "CLEAR_SUBMISSION" to confirm:
+              </label>
+              <Input
+                placeholder="CLEAR_SUBMISSION"
+                value={clearConfirmation}
+                onChange={(e) => setClearConfirmation(e.target.value)}
+                className="border-red-200 focus:border-red-500"
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setClearSubmissionDialog(false);
+                  setSubmissionToClear(null);
+                  setClearConfirmation('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleClearSubmission}
+                variant="destructive"
+                disabled={clearConfirmation !== 'CLEAR_SUBMISSION'}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear Submission
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete All Records Dialog */}
+      <Dialog open={deleteAllDialog} onOpenChange={setDeleteAllDialog}>
+        <DialogContent className="max-w-2xl" aria-describedby="delete-all-dialog-description">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 text-xl">🗑️ Delete All Records</DialogTitle>
+          </DialogHeader>
+          
+          <div id="delete-all-dialog-description" className="sr-only">
+            Critical warning dialog for deleting all achievement submissions. This action will permanently remove all 
+            submissions from the system, resetting the entire achievement system to zero. This action cannot be undone 
+            and will affect all departments and faculty members.
+          </div>
+          
+          <div className="space-y-4">
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <h4 className="font-medium text-red-800 mb-2 text-lg">⚠️ EXTREME WARNING: This action cannot be undone!</h4>
+              <p className="text-red-700 text-sm">
+                This will permanently delete <strong>ALL {submissions.length} achievement submissions</strong> from the system:
+              </p>
+              <ul className="text-red-700 text-sm mt-2 list-disc list-inside">
+                <li><strong>All pending submissions</strong> awaiting review</li>
+                <li><strong>All approved submissions</strong> and their achievements</li>
+                <li><strong>All rejected submissions</strong> and their history</li>
+                <li><strong>All associated files and data</strong></li>
+                <li><strong>Complete submission history</strong> will be lost</li>
+                <li><strong>All faculty achievement counts</strong> will be reset</li>
+              </ul>
+              <p className="text-red-700 text-sm mt-2 font-medium">
+                <strong>🚨 CRITICAL: This will reset the entire achievement system to zero!</strong>
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <h4 className="font-medium mb-2">System Impact Summary:</h4>
+              <div className="text-sm space-y-1">
+                <p><strong>Total Submissions:</strong> {submissions.length}</p>
+                <p><strong>Pending:</strong> {submissions.filter(s => s.status === 'pending').length}</p>
+                <p><strong>Approved:</strong> {submissions.filter(s => s.status === 'approved').length}</p>
+                <p><strong>Rejected:</strong> {submissions.filter(s => s.status === 'rejected').length}</p>
+                <p><strong>Departments Affected:</strong> {[...new Set(submissions.map(s => s.department))].length}</p>
+                <p><strong>Faculty Members Affected:</strong> {[...new Set(submissions.map(s => s.faculty_id))].length}</p>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <h4 className="font-medium mb-2 text-blue-800">HOD Performing Action:</h4>
+              <div className="text-sm text-blue-700">
+                <p><strong>Name:</strong> {getCurrentUser()?.name}</p>
+                <p><strong>ID:</strong> {getCurrentUser()?.id}</p>
+                <p><strong>Designation:</strong> {getCurrentUser()?.designation}</p>
+                <p><strong>Department:</strong> {getCurrentUser()?.department}</p>
+                <p><strong>Timestamp:</strong> {new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2 text-red-600">
+                Type exactly "DELETE_ALL_RECORDS" to confirm this destructive action:
+              </label>
+              <Input
+                placeholder="DELETE_ALL_RECORDS"
+                value={deleteAllConfirmation}
+                onChange={(e) => setDeleteAllConfirmation(e.target.value)}
+                className="border-red-500 text-center font-mono border-2"
+              />
+              <p className="text-xs text-red-600 mt-1">
+                This action will permanently delete all {submissions.length} submissions and cannot be undone.
+              </p>
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteAllDialog(false);
+                  setDeleteAllConfirmation('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteAllRecords}
+                variant="destructive"
+                disabled={deleteAllConfirmation !== 'DELETE_ALL_RECORDS'}
+                className="bg-red-700 hover:bg-red-800 px-6"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete All Records
               </Button>
             </div>
           </div>

@@ -390,19 +390,7 @@ const FacultyDetailView = () => {
                 </div>
                 <div className="mt-2">
                   <Label className="text-sm font-medium text-white/90">Designation:</Label>{' '}
-                  {isEditing ? (
-                    <select
-                      value={editedFaculty.designation || faculty.designation}
-                      onChange={e => updateField('designation', e.target.value)}
-                      className="ml-2 px-2 py-1 rounded border bg-white/20 text-white border-white/30"
-                    >
-                      <option value="Head of Department">Head of Department</option>
-                      <option value="Associate Professor">Associate Professor</option>
-                      <option value="Assistant Professor">Assistant Professor</option>
-                    </select>
-                  ) : (
-                    <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">{faculty.designation}</Badge>
-                  )}
+                  <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">{faculty.designation}</Badge>
                 </div>
               </div>
             </div>
@@ -528,23 +516,9 @@ const FacultyDetailView = () => {
                       <div key={item.key} className="space-y-3">
                         <div className="flex justify-between items-center">
                           <Label className="text-sm font-medium text-purple-700 dark:text-purple-300">{item.label}</Label>
-                          {isEditing ? (
-                            <Input
-                              type="number"
-                              min="0"
-                              value={editedFaculty[item.key] || 0}
-                              onChange={(e) => updateField(item.key, parseInt(e.target.value) || 0)}
-                              className={`w-20 text-right border-2 focus:border-purple-500 ${
-                                editedFaculty[item.key] !== faculty[item.key] 
-                                  ? 'border-green-500 bg-green-50' 
-                                  : 'border-purple-200'
-                              }`}
-                            />
-                          ) : (
-                            <Badge variant="secondary" className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                              {item.value}
-                            </Badge>
-                          )}
+                          <Badge variant="secondary" className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                            {item.value}
+                          </Badge>
                         </div>
                         
                         {/* PDF Upload Section - Only show when editing */}
