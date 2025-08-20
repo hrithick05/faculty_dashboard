@@ -1020,7 +1020,7 @@ app.delete('/api/achievements/delete-all-submissions', async (req, res) => {
     const { error: deleteError } = await supabase
       .from('achievement_submissions')
       .delete()
-      .gte('id', 0); // This will match all records since IDs are positive integers
+      .gte('id', 0); // This will match all records since IDs are positive integers - redeploying
 
     if (deleteError) {
       console.error('❌ Error deleting all submissions:', deleteError);
