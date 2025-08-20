@@ -42,9 +42,7 @@ const HODReviewPanel = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [facultyToDelete, setFacultyToDelete] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
-  const [clearSubmissionDialog, setClearSubmissionDialog] = useState(false);
-  const [submissionToClear, setSubmissionToClear] = useState(null);
-  const [clearConfirmation, setClearConfirmation] = useState('');
+
   const [deleteAllDialog, setDeleteAllDialog] = useState(false);
   const [deleteAllConfirmation, setDeleteAllConfirmation] = useState('');
   const [hideOldRecords, setHideOldRecords] = useState(false);
@@ -385,12 +383,7 @@ const HODReviewPanel = () => {
     setDeleteDialog(true);
   };
 
-  // Open clear submission dialog
-  const openClearSubmissionDialog = (submission) => {
-    setSubmissionToClear(submission);
-    setClearSubmissionDialog(true);
-    setClearConfirmation('');
-  };
+
 
   // Open delete all records dialog
   const openDeleteAllDialog = () => {
@@ -514,65 +507,7 @@ const HODReviewPanel = () => {
     }
   };
 
-  // Handle clear submission
-  const handleClearSubmission = async () => {
-    if (clearConfirmation !== 'CLEAR_SUBMISSION') {
-      toast({
-        title: "Confirmation Mismatch",
-        description: "Please type 'CLEAR_SUBMISSION' exactly to confirm deletion.",
-        variant: "destructive"
-      });
-      return;
-    }
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${apiUrl}/api/achievements/delete-submission`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          submissionId: submissionToClear.id
-        })
-      });
-
-      if (!response.ok) {
-        // Check if response is JSON or HTML
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `Failed to delete submission (${response.status})`);
-        } else {
-          // Handle HTML responses (like 404 pages)
-          throw new Error(`API endpoint not found (${response.status}). The backend may need to be redeployed.`);
-        }
-      }
-
-      const result = await response.json();
-      
-      toast({
-        title: "Submission Cleared Successfully",
-        description: result.message || "The submission has been permanently removed from the system.",
-      });
-
-      // Refresh submissions to reflect the deletion
-      await fetchSubmissions(true);
-      
-      // Close dialog
-      setClearSubmissionDialog(false);
-      setSubmissionToClear(null);
-      setClearConfirmation('');
-      
-    } catch (error) {
-      console.error('❌ Clear submission error:', error);
-      toast({
-        title: "Clear Failed",
-        description: error.message || "Could not clear submission. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   // Handle delete all records - removed duplicate function
 
@@ -954,15 +889,7 @@ const HODReviewPanel = () => {
                       )}
                       
                       {/* Clear/Delete Submission Button - For HODs to remove unwanted submissions */}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => openClearSubmissionDialog(submission)}
-                        className="mt-2 bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        Clear Submission
-                      </Button>
+
                       
                       {/* Reset Faculty Performance Data Button - Visible to all users for testing */}
                       <Button
@@ -1135,92 +1062,7 @@ const HODReviewPanel = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Clear Submission Dialog */}
-      <Dialog open={clearSubmissionDialog} onOpenChange={setClearSubmissionDialog}>
-        <DialogContent aria-describedby="clear-submission-dialog-description">
-          <DialogHeader>
-            <DialogTitle className="text-red-600">Clear Submission</DialogTitle>
-          </DialogHeader>
-          
-          <div id="clear-submission-dialog-description" className="sr-only">
-            Warning dialog for clearing a single achievement submission. This action will permanently delete the selected 
-            submission including all associated data and files. Cannot be undone.
-          </div>
-          
-          <div className="space-y-4">
-            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-              <h4 className="font-medium text-red-800 mb-2">⚠️ Warning: This action cannot be undone!</h4>
-              <p className="text-red-700 text-sm">
-                This will permanently delete the submission:
-              </p>
-              <ul className="text-red-700 text-sm mt-2 list-disc list-inside">
-                <li>Submission title: <strong>{submissionToClear?.title}</strong></li>
-                <li>Faculty: <strong>{submissionToClear?.faculty_name}</strong></li>
-                <li>Category: <strong>{submissionToClear?.category}</strong></li>
-                <li>Status: <strong>{submissionToClear?.status}</strong></li>
-                <li>All associated data and files</li>
-              </ul>
-              <p className="text-red-700 text-sm mt-2 font-medium">
-                <strong>⚠️ WARNING: This submission will be permanently removed!</strong>
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <h4 className="font-medium mb-2">Submission Details:</h4>
-              <div className="text-sm">
-                <p><strong>Title:</strong> {submissionToClear?.title}</p>
-                <p><strong>Faculty:</strong> {submissionToClear?.faculty_name}</p>
-                <p><strong>Department:</strong> {submissionToClear?.department}</p>
-                <p><strong>Category:</strong> {submissionToClear?.category}</p>
-                <p><strong>Submitted:</strong> {submissionToClear?.submitted_at ? formatDateIST(submissionToClear.submitted_at) : 'N/A'}</p>
-              </div>
-            </div>
-            
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <h4 className="font-medium mb-2 text-blue-800">HOD Performing Action:</h4>
-              <div className="text-sm text-blue-700">
-                <p><strong>Name:</strong> {getCurrentUser()?.name}</p>
-                <p><strong>ID:</strong> {getCurrentUser()?.id}</p>
-                <p><strong>Designation:</strong> {getCurrentUser()?.designation}</p>
-                <p><strong>Department:</strong> {getCurrentUser()?.department}</p>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2 text-red-600">
-                Type exactly "CLEAR_SUBMISSION" to confirm:
-              </label>
-              <Input
-                placeholder="CLEAR_SUBMISSION"
-                value={clearConfirmation}
-                onChange={(e) => setClearConfirmation(e.target.value)}
-                className="border-red-200 focus:border-red-500"
-              />
-            </div>
-            
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setClearSubmissionDialog(false);
-                  setSubmissionToClear(null);
-                  setClearConfirmation('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleClearSubmission}
-                variant="destructive"
-                disabled={clearConfirmation !== 'CLEAR_SUBMISSION'}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear Submission
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Delete All Records Dialog */}
       <Dialog open={deleteAllDialog} onOpenChange={setDeleteAllDialog}>
