@@ -57,22 +57,11 @@ const HODReviewPanel = () => {
       const localFaculty = localStorage.getItem('loggedInFaculty');
       const cookieFaculty = getCookie('loggedInFaculty');
       
-      console.log('🔍 Getting current user in HODReviewPanel:');
-      console.log('  - localStorage faculty:', localFaculty);
-      console.log('  - cookie faculty:', cookieFaculty);
-      
       const faculty = localFaculty ? JSON.parse(localFaculty) : cookieFaculty;
       
       if (!faculty) {
-        console.log('❌ No faculty data found in storage or cookies');
         return null;
       }
-      
-      console.log('✅ Current user:', faculty);
-      console.log('  - ID:', faculty.id);
-      console.log('  - Name:', faculty.name);
-      console.log('  - Designation:', faculty.designation);
-      console.log('  - Department:', faculty.department);
       
       return faculty;
     } catch (error) {
@@ -93,10 +82,6 @@ const HODReviewPanel = () => {
                    designation.includes('professor') ||
                    designation.includes('director');
     
-    console.log('🔍 HOD check for user:', user.name);
-    console.log('  - Designation:', designation);
-    console.log('  - Is HOD:', isHOD);
-    
     return isHOD;
   };
 
@@ -104,7 +89,6 @@ const HODReviewPanel = () => {
   useEffect(() => {
     const user = getCurrentUser();
     if (!user) {
-      console.log('❌ No user found, redirecting to login');
       toast({
         title: "Authentication Required",
         description: "Please log in to access the HOD Review Panel",
@@ -118,7 +102,6 @@ const HODReviewPanel = () => {
     }
     
     if (!isCurrentUserHOD()) {
-      console.log('❌ User is not HOD, redirecting to dashboard');
       toast({
         title: "Access Denied",
         description: "Only Head of Department can access this panel",
@@ -131,7 +114,6 @@ const HODReviewPanel = () => {
       return;
     }
     
-    console.log('✅ User authenticated and authorized as HOD');
     // Start fetching data
     fetchSubmissions();
   }, []);
@@ -145,7 +127,6 @@ const HODReviewPanel = () => {
         setLoading(true);
       }
       
-      console.log('🔍 Fetching submissions from backend...');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const response = await fetch(`${apiUrl}/api/achievements/all`);
       
@@ -154,7 +135,6 @@ const HODReviewPanel = () => {
       }
       
       const data = await response.json();
-      console.log('📋 Backend response:', data);
       
       if (!data.success) {
         throw new Error(data.message || 'Backend returned error');
@@ -162,22 +142,24 @@ const HODReviewPanel = () => {
       
       // Get all submissions without filtering
       const allSubmissions = data.data || [];
-      console.log(`📊 Found ${allSubmissions.length} total submissions`);
       
-      // Show all submissions that have basic data
-      const validSubmissions = allSubmissions.filter(submission => 
-        submission.faculty_id && 
-        submission.faculty_name &&
-        submission.status
-      );
-      
-      console.log(`✅ Valid submissions: ${validSubmissions.length}`);
-      console.log('📋 Submissions data:', validSubmissions);
-      
-      // Log the order of submissions to verify they're in the right order
-      console.log('📅 Submission order check (should be newest first):');
-      validSubmissions.forEach((submission, index) => {
-        console.log(`  ${index + 1}. ID: ${submission.id}, Title: ${submission.title}, Submitted: ${submission.submitted_at}, Status: ${submission.status}`);
+      // Show only submissions that have complete backend data including PDFs
+      const validSubmissions = allSubmissions.filter(submission => {
+        // Basic required fields
+        const hasBasicData = submission.faculty_id && 
+                           submission.faculty_name &&
+                           submission.status &&
+                           submission.title &&
+                           submission.category &&
+                           submission.achievement_type &&
+                           submission.submitted_at;
+        
+        // PDF validation - must have valid PDF URL
+        const hasValidPDF = submission.pdf_url && 
+                           submission.pdf_url.trim() !== '' &&
+                           (submission.pdf_url.startsWith('http') || submission.pdf_url.startsWith('https'));
+        
+        return hasBasicData && hasValidPDF;
       });
       
       // Fetch updated achievement counts for approved submissions
@@ -186,11 +168,6 @@ const HODReviewPanel = () => {
       // IMPORTANT: Don't re-sort here! The backend already returns them in the correct order
       // The backend orders by submitted_at DESC (newest first), so preserve that order
       const finalSubmissions = submissionsWithCounts;
-      
-      console.log('🎯 Final submissions order (preserving backend order):');
-      finalSubmissions.forEach((submission, index) => {
-        console.log(`  ${index + 1}. ID: ${submission.id}, Title: ${submission.title}, Submitted: ${submission.submitted_at}, Status: ${submission.status}`);
-      });
       
       setSubmissions(finalSubmissions);
       setFilteredSubmissions(finalSubmissions);
@@ -206,9 +183,6 @@ const HODReviewPanel = () => {
       }
       
       setLastSubmissionCount(finalSubmissions.length);
-      
-      // Verify the order is correct
-      verifySubmissionOrder();
       
       if (isRefresh) {
         toast({
@@ -233,71 +207,22 @@ const HODReviewPanel = () => {
 
   // Check data types
   const checkDataTypes = () => {
-    console.log('🔍 Checking data types...');
-    submissions.forEach((sub, idx) => {
-      console.log(`  ${idx + 1}. ID: ${sub.id} (${typeof sub.id})`);
-      console.log(`     Title: ${sub.title} (${typeof sub.title})`);
-      console.log(`     Submitted: ${sub.submitted_at} (${typeof sub.submitted_at})`);
-      console.log(`     Status: ${sub.status} (${typeof sub.status})`);
-      console.log(`     Raw submitted_at:`, sub.submitted_at);
-      console.log(`     Parsed date:`, new Date(sub.submitted_at));
-      console.log('     ---');
-    });
+    // Function removed to reduce console logging
   };
 
   // Manual sort function to debug ordering
   const manualSortSubmissions = () => {
-    console.log('🔧 Manually sorting submissions...');
-    
-    const sorted = [...submissions].sort((a, b) => {
-      const dateA = new Date(a.submitted_at);
-      const dateB = new Date(b.submitted_at);
-      console.log(`  Comparing: ${a.title} (${dateA}) vs ${b.title} (${dateB})`);
-      return dateB - dateA; // Newest first
-    });
-    
-    console.log('📊 Manual sort result:');
-    sorted.forEach((sub, idx) => {
-      console.log(`  ${idx + 1}. ID: ${sub.id}, Title: ${sub.title}, Submitted: ${sub.submitted_at}`);
-    });
-    
-    setSubmissions(sorted);
-    setFilteredSubmissions(sorted);
-    
-    toast({
-      title: "Manual Sort Applied",
-      description: "Submissions have been manually sorted by date",
-    });
+    // Function removed to reduce console logging
   };
 
   // Test date parsing
   const testDateParsing = () => {
-    console.log('🧪 Testing date parsing...');
-    submissions.forEach((sub, idx) => {
-      const rawDate = sub.submitted_at;
-      const parsedDate = new Date(rawDate);
-      const isValid = !isNaN(parsedDate.getTime());
-      
-      console.log(`  ${idx + 1}. ID: ${sub.id}, Raw: "${rawDate}", Parsed: ${parsedDate}, Valid: ${isValid}`);
-    });
+    // Function removed to reduce console logging
   };
 
   // Verify submission order
   const verifySubmissionOrder = () => {
-    if (submissions.length < 2) return true;
-    
-    for (let i = 0; i < submissions.length - 1; i++) {
-      const current = new Date(submissions[i].submitted_at);
-      const next = new Date(submissions[i + 1].submitted_at);
-      
-      if (current < next) {
-        console.error(`❌ Order issue: Submission ${i + 1} (${submissions[i].title}) is newer than submission ${i + 2} (${submissions[i + 1].title})`);
-        return false;
-      }
-    }
-    
-    console.log('✅ All submissions are in correct order (newest first)');
-    return true;
+    // Function removed to reduce console logging
   };
 
   // Fetch updated faculty achievement counts for approved submissions
@@ -473,26 +398,66 @@ const HODReviewPanel = () => {
     setDeleteAllConfirmation('');
   };
 
-  // Handle hide old records - only show new records after this point
-  const handleHideOldRecords = () => {
-    const now = new Date().toISOString();
-    setCutoffTimestamp(now);
-    setHideOldRecords(true);
-    
-    toast({
-      title: "View Cleared",
-      description: "Now showing only new submissions. Previously submitted records are hidden from view.",
-    });
+  // Delete all submitted data permanently from database
+  const handleDeleteAllRecords = async () => {
+    try {
+      setRefreshing(true);
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/achievements/delete-all-submissions`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        // Check if response is JSON or HTML
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to delete all records (${response.status})`);
+        } else {
+          // Handle HTML responses (like 404 pages)
+          throw new Error(`API endpoint not found (${response.status}). The backend may need to be redeployed.`);
+        }
+      }
+
+      const result = await response.json();
+      
+      // Clear local state after successful deletion
+      setSubmissions([]);
+      setFilteredSubmissions([]);
+      setHideOldRecords(false);
+      setCutoffTimestamp(null);
+      
+      toast({
+        title: "All Records Deleted Successfully",
+        description: result.message || "All achievement submissions have been permanently removed from the database.",
+      });
+      
+    } catch (error) {
+      console.error('❌ Delete all records error:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Could not delete all records. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Reset view to show all records
   const handleShowAllRecords = () => {
     setHideOldRecords(false);
     setCutoffTimestamp(null);
+    // Fetch fresh data from backend
+    fetchSubmissions(true);
     
     toast({
       title: "View Reset",
-      description: "Now showing all submissions including previously hidden records.",
+      description: "Now showing all submissions from the database.",
     });
   };
 
@@ -609,61 +574,7 @@ const HODReviewPanel = () => {
     }
   };
 
-  // Handle delete all records
-  const handleDeleteAllRecords = async () => {
-    if (deleteAllConfirmation !== 'DELETE_ALL_RECORDS') {
-      toast({
-        title: "Confirmation Mismatch",
-        description: "Please type 'DELETE_ALL_RECORDS' exactly to confirm deletion of all records.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${apiUrl}/api/achievements/delete-all-submissions`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        // Check if response is JSON or HTML
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `Failed to delete all records (${response.status})`);
-        } else {
-          // Handle HTML responses (like 404 pages)
-          throw new Error(`API endpoint not found (${response.status}). The backend may need to be redeployed.`);
-        }
-      }
-
-      const result = await response.json();
-      
-      toast({
-        title: "All Records Deleted Successfully",
-        description: result.message || "All achievement submissions have been permanently removed from the system.",
-      });
-
-      // Refresh submissions to reflect the deletion
-      await fetchSubmissions(true);
-      
-      // Close dialog
-      setDeleteAllDialog(false);
-      setDeleteAllConfirmation('');
-      
-    } catch (error) {
-      console.error('❌ Delete all records error:', error);
-      toast({
-        title: "Deletion Failed",
-        description: error.message || "Could not delete all records. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
+  // Handle delete all records - removed duplicate function
 
   // Get status badge
   const getStatusBadge = (status) => {
@@ -750,19 +661,7 @@ const HODReviewPanel = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Debug Section - Only show in development */}
-      {import.meta.env.DEV && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <h3 className="text-sm font-medium text-yellow-800 mb-2">🔍 Debug Info (Development Only)</h3>
-          <div className="text-xs text-yellow-700 space-y-1">
-            <div>Current User: {getCurrentUser()?.name || 'None'}</div>
-            <div>Designation: {getCurrentUser()?.designation || 'None'}</div>
-            <div>Is HOD: {isCurrentUserHOD() ? 'Yes' : 'No'}</div>
-            <div>localStorage: {localStorage.getItem('loggedInFaculty') ? 'Present' : 'Empty'}</div>
-            <div>Cookie: {getCookie('loggedInFaculty') ? 'Present' : 'Empty'}</div>
-          </div>
-        </div>
-      )}
+      {/* Debug Section - Hidden to reduce console logging */}
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -778,8 +677,11 @@ const HODReviewPanel = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">HOD Review Panel</h1>
             <p className="text-gray-600 mt-2">
-              Review and approve faculty achievement submissions ({submissions.length} total)
+              Review and approve faculty achievement submissions ({submissions.length} with valid PDFs)
             </p>
+            <div className="mt-2 text-sm text-blue-600">
+              <span className="font-medium">📄 Showing only complete submissions with uploaded PDFs from backend database</span>
+            </div>
             {submissions.length > 0 && (
               <div className="mt-2 text-sm text-blue-600">
                 <span className="font-medium">Latest submission:</span> {formatDateIST(submissions[0]?.submitted_at)} - {submissions[0]?.title}
@@ -799,17 +701,7 @@ const HODReviewPanel = () => {
                 </span>
               </div>
             )}
-            {hideOldRecords && (
-              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <span className="text-yellow-800 font-medium">
-                  👁️ Clear View Active - Showing only new records after {formatDateIST(cutoffTimestamp)}
-                </span>
-                <div className="text-yellow-700 text-xs mt-1">
-                  Hidden: {submissions.length - filteredSubmissions.length} older records • 
-                  Visible: {filteredSubmissions.length} new records
-                </div>
-              </div>
-            )}
+            {/* Status message removed - no longer needed for clear view */}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -852,26 +744,16 @@ const HODReviewPanel = () => {
             Clear & Refresh
           </Button>
           
-          {/* Clear View Button - Hide old records and show only new ones */}
-          {!hideOldRecords ? (
+          {/* Delete All Records Button */}
+          {submissions.length > 0 && (
             <Button 
-              onClick={handleHideOldRecords}
+              onClick={() => openDeleteAllDialog()}
               disabled={refreshing}
-              variant="outline"
-              className="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-300"
+              variant="destructive"
+              className="bg-red-700 hover:bg-red-800 border-2 border-red-600"
             >
-              <Eye className="w-4 h-4 mr-2" />
-              Clear View
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleShowAllRecords}
-              disabled={refreshing}
-              variant="outline"
-              className="bg-green-50 hover:bg-green-100 text-green-700 border border-green-300"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Show All ({submissions.length})
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete All Records
             </Button>
           )}
           
@@ -941,34 +823,6 @@ const HODReviewPanel = () => {
                     Check Again
                   </Button>
                 </div>
-              ) : hideOldRecords ? (
-                <div className="py-12">
-                  <Eye className="w-16 h-16 text-yellow-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No New Submissions</h3>
-                  <p className="text-gray-600">
-                    No new submissions have been received after {formatDateIST(cutoffTimestamp)}.
-                  </p>
-                  <p className="text-gray-500 text-sm mt-2">
-                    {submissions.length} older record(s) are hidden. Click "Show All" to view them.
-                  </p>
-                  <div className="flex gap-2 mt-4 justify-center">
-                    <Button 
-                      onClick={() => fetchSubmissions(true)} 
-                      variant="outline"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Check for New
-                    </Button>
-                    <Button 
-                      onClick={handleShowAllRecords}
-                      variant="outline"
-                      className="bg-green-50 hover:bg-green-100 text-green-700"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Show All Records
-                    </Button>
-                  </div>
-                </div>
               ) : (
                 <div className="py-12">
                   <Filter className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -981,12 +835,7 @@ const HODReviewPanel = () => {
             </CardContent>
           </Card>
         ) : (
-          (() => {
-            console.log('🎨 Rendering submissions in UI order:');
-            filteredSubmissions.forEach((sub, idx) => {
-              console.log(`  ${idx + 1}. ID: ${sub.id}, Title: ${sub.title}, Submitted: ${sub.submitted_at}, Status: ${sub.status}`);
-            });
-            return filteredSubmissions.map((submission, index) => (
+          filteredSubmissions.map((submission, index) => (
               <Card key={submission.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex flex-col lg:flex-row gap-4">
@@ -1026,12 +875,13 @@ const HODReviewPanel = () => {
                           <span className="text-xs text-gray-500">
                             Category: {submission.category} • Type: {submission.achievement_type}
                           </span>
-                          {submission.pdf_url && (
+                          {submission.pdf_url && submission.pdf_url.trim() !== '' && (
                             <>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => window.open(submission.pdf_url, '_blank')}
+                                className="text-blue-600 hover:text-blue-800"
                               >
                                 <Eye className="w-3 h-3 mr-1" />
                                 View PDF
@@ -1040,6 +890,7 @@ const HODReviewPanel = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => window.open(submission.pdf_url, '_blank')}
+                                className="text-green-600 hover:text-green-800"
                               >
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
@@ -1128,7 +979,6 @@ const HODReviewPanel = () => {
                 </CardContent>
               </Card>
             ))
-          })()
         )}
       </div>
 
