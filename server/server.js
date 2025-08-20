@@ -1273,9 +1273,9 @@ app.get('/api/faculty', async (req, res) => {
 });
 
 // Get individual faculty member by ID
-app.get('/api/faculty/:id', async (req, res) => {
+app.get('/api/faculty/by-id', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.query;
     
     const { data, error } = await supabase
       .from('faculty')
